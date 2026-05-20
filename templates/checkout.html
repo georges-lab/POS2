@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Checkout | POS System{% endblock %}
+
+{% block content %}
+<h3>Checkout</h3>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category }} mt-3">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
+<form method="POST" action="{{ url_for('checkout') }}" class="mb-4">
+
+  <!-- Client Selection -->
+  <div class="mb-3">
+    <label for="client" class="form-label">Select Customer</label>
+    <select name="client_id" id="client" class="form-control">
+      <option value="">-- Walk-in Customer --</option>
+      {% for client in clients %}
+        <option value="{{ client.id }}">{{ client.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <!-- Quick Sale Product -->
+  <div class="mb-3">
+    <label for="product" class="form-label">Select Product (Quick Sale)</label>
+    <select name="product" id="product" class="form-control">
+      <option value="">-- Choose Product --</option>
+      {% for product in products %}
+        <option value="{{ product.id }}" {% if selected_product and selected_product|int == product.id %}selected{% endif %}>
+          {{ product.name }} (Stock: {{ product.quantity }})
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <!-- Quick Sale Quantity -->
+  <div class="mb-3">
+    <label for="quantity" class="form-label">Quantity</label>
+    <input type="number" name="quantity" id="quantity" class="form-control" value="{{ quantity or 1 }}" min="1">
+  </div>
+
+  <button type="submit" class="btn btn-success">Complete Checkout</button>
+</form>
+
+<!-- Sale Summary -->
+{% if sale %}
+<div class="alert alert-success mt-4">
+  <h5>Sale Completed!</h5>
+  <p><strong>Product:</strong> {{ sale.product_name }}</p>
+  <p><strong>Unit Price:</strong> Ksh {{ "{:,.2f}".format(sale.unit_price) }}</p>
+  <p><strong>Quantity:</strong> {{ sale.quantity_sold }}</p>
+  <p><strong>Total:</strong> Ksh {{ "{:,.2f}".format(sale.total_price) }}</p>
+  <p><strong>Date:</strong> {{ sale.timestamp.strftime('%d-%b-%Y %I:%M %p') }}</p>
+</div>
+{% endif %}
+
+<!-- If full cart checkout -->
+{% if cart_items %}
+<h4>Cart Summary</h4>
+<table class="table table-bordered">
+  <thead>
+    <tr>
+      <th>Product</th>
+      <th>Qty</th>
+      <th>Unit Price</th>
+      <th>Total</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in cart_items %}
+    <tr>
+      <td>{{ item.product.name }}</td>
+      <td>{{ item.quantity }}</td>
+      <td>Ksh {{ "{:,.2f}".format(item.product.price) }}</td>
+      <td>Ksh {{ "{:,.2f}".format(item.quantity * item.product.price) }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+<a href="{{ url_for('dashboard') }}" class="btn btn-outline-primary mb-3">← Back to Dashboard</a>
+{% endblock %}

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h2>Clients</h2>
+
+  <form method="POST" class="row g-2 mb-3">
+    <div class="col-md-3"><input name="name" class="form-control" placeholder="Client name" required></div>
+    <div class="col-md-3"><input name="phone" class="form-control" placeholder="Phone"></div>
+    <div class="col-md-3"><input name="email" class="form-control" placeholder="Email"></div>
+    <div class="col-md-3"><button class="btn btn-primary w-100">Add Client</button></div>
+  </form>
+
+  <table class="table table-bordered">
+    <thead><tr><th>ID</th><th>Name</th><th>Phone</th><th>Email</th><th>Created</th><th>Action</th></tr></thead>
+    <tbody>
+      {% for c in clients %}
+      <tr>
+        <td>{{ c.id }}</td>
+        <td>{{ c.name }}</td>
+        <td>{{ c.phone or '' }}</td>
+        <td>{{ c.email or '' }}</td>
+        <td>{{ c.created_at.strftime("%Y-%m-%d") }}</td>
+        <td><a href="{{ url_for('client_statement', client_id=c.id) }}" class="btn btn-sm btn-info">Statement</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<div>
+<a href="{{ url_for('dashboard') }}" class="btn btn-secondary mb-3">Back to dashboard</a>
+</div>
+
+{% endblock %}

@@ -1,0 +1,22 @@
+# --- Framework (Python 3.8 Compatible versions) ---
+Flask==2.3.3
+Flask-Login==0.6.3
+Flask-SQLAlchemy==3.0.5
+Flask-Migrate==4.0.5
+Werkzeug==2.3.7
+SQLAlchemy==2.0.23
+alembic==1.11.1
+python-dotenv==1.0.0
+
+# --- Desktop GUI & Networking ---
+pywebview==4.4.1
+requests==2.31.0
+
+# --- PDF & Document Processing ---
+pdfplumber==0.10.3
+pdfkit==1.0.0
+reportlab==3.6.13
+
+# --- Security & Bundling ---
+cryptography==41.0.4
+pyinstaller==5.13.0

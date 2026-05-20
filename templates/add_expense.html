@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Expense{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="card p-4 shadow-sm">
+    <h2 class="mb-4"><i class="bi bi-cash-stack me-2"></i>Add Expense</h2>
+
+    <form action="{{ url_for('add_expense') }}" method="POST">
+      <div class="mb-3">
+        <label for="description" class="form-label">Description</label>
+        <input type="text" class="form-control" name="description" id="description" placeholder="Enter expense description" required>
+      </div>
+
+      <div class="mb-3">
+        <label for="amount" class="form-label">Amount (Ksh)</label>
+        <input type="number" step="0.01" class="form-control" name="amount" id="amount" placeholder="Enter amount" required>
+      </div>
+
+      <div class="mb-3">
+        <label for="category" class="form-label">Category</label>
+        <input type="text" class="form-control" name="category" id="category" placeholder="e.g. Transport, Supplies" required>
+      </div>
+
+      <div class="mb-3">
+        <label for="date" class="form-label">Date</label>
+        <input type="date" class="form-control" name="date" id="date">
+      </div>
+
+      <button type="submit" class="btn btn-success w-100">
+        <i class="bi bi-save me-1"></i> Save Expense
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

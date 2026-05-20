@@ -1,0 +1,863 @@
+{% extends 'base.html' %}
+{% block title %}Inventory - BizTool POS{% endblock %}
+
+{% block head %}
+<!-- Preconnect for faster font load -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+    /* Hide the page until fonts + our styles are fully ready — eliminates FOUC */
+    .inv-wrapper { visibility: hidden; opacity: 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="inv-wrapper">
+
+    <!-- ===== HERO HEADER ===== -->
+    <div class="inv-header">
+        <div class="inv-header-left">
+            <div class="inv-title-group">
+                <span class="inv-eyebrow">
+                    <span class="inv-eyebrow-dot"></span>
+                    Live Inventory
+                </span>
+                <h1 class="inv-title">Product <span class="inv-title-accent">Catalog</span></h1>
+                <p class="inv-subtitle">Real-time stock management &amp; instant cart addition</p>
+            </div>
+        </div>
+        <div class="inv-header-right">
+            <a href="{{ url_for('cart') }}" class="inv-btn inv-btn-primary">
+                <i class="bi bi-cart3"></i>
+                View Cart
+            </a>
+            {% if is_admin %}
+            <a href="{{ url_for('upload_products') }}" class="inv-btn inv-btn-ghost">
+                <i class="bi bi-cloud-arrow-up-fill"></i>
+                Upload List
+            </a>
+            <a href="{{ url_for('add_product') }}" class="inv-btn inv-btn-accent">
+                <i class="bi bi-plus-circle-dotted"></i>
+                New Product
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- ===== SEARCH BAR ===== -->
+    <div class="inv-search-wrap">
+        <form method="get" action="{{ url_for('products') }}" class="inv-search-form">
+            <div class="inv-search-inner">
+                <i class="bi bi-search inv-search-icon"></i>
+                <input
+                    type="text"
+                    name="search"
+                    class="inv-search-input"
+                    placeholder="Search by product name or category…"
+                    value="{{ search_query or '' }}"
+                    autocomplete="off"
+                >
+                {% if search_query %}
+                <a href="{{ url_for('products') }}" class="inv-search-clear" title="Clear search">
+                    <i class="bi bi-x-lg"></i>
+                </a>
+                {% endif %}
+            </div>
+            <button type="submit" class="inv-search-btn">
+                <i class="bi bi-arrow-right-short"></i>
+                Search
+            </button>
+        </form>
+    </div>
+
+    <!-- ===== PRODUCTS GRID ===== -->
+    <div class="inv-grid">
+        {% for product in products %}
+
+        {% set is_expired = product.expiry_date and product.expiry_date < today %}
+        {% set expires_soon = product.expiry_date and not is_expired and product.expiry_date <= today_plus_30 %}
+        {% set low_stock = product.quantity <= 5 %}
+        {% set out_of_stock = product.quantity < 1 %}
+
+        <div class="pcard {% if is_expired %}pcard--expired{% endif %}">
+
+            <!-- Top Bar: Category + Status badges -->
+            <div class="pcard__topbar">
+                <span class="pcard__category">{{ product.category or 'General' }}</span>
+                <div class="pcard__badges">
+                    {% if is_expired %}
+                        <span class="pcard__badge pcard__badge--danger">
+                            <i class="bi bi-exclamation-octagon-fill"></i> Expired
+                        </span>
+                    {% elif expires_soon %}
+                        <span class="pcard__badge pcard__badge--warn">
+                            <i class="bi bi-hourglass-split"></i> Expiring Soon
+                        </span>
+                    {% endif %}
+                    {% if out_of_stock %}
+                        <span class="pcard__badge pcard__badge--danger">
+                            <i class="bi bi-x-circle-fill"></i> Out of Stock
+                        </span>
+                    {% elif low_stock %}
+                        <span class="pcard__badge pcard__badge--warn">
+                            <i class="bi bi-exclamation-triangle-fill"></i> Low Stock
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Product Info -->
+            <div class="pcard__body">
+                <p class="pcard__id">SKU #{{ product.id }}</p>
+                <h3 class="pcard__name">{{ product.name }}</h3>
+
+                {% if product.expiry_date %}
+                <p class="pcard__expiry {% if is_expired %}pcard__expiry--bad{% elif expires_soon %}pcard__expiry--warn{% endif %}">
+                    <i class="bi bi-calendar-event me-1"></i>
+                    {% if is_expired %}
+                        Expired {{ product.expiry_date.strftime('%d %b %Y') }}
+                    {% elif expires_soon %}
+                        Expires {{ product.expiry_date.strftime('%d %b %Y') }}
+                    {% else %}
+                        Exp: {{ product.expiry_date.strftime('%d %b %Y') }}
+                    {% endif %}
+                </p>
+                {% endif %}
+
+                <!-- Price & Stock Row -->
+                <div class="pcard__meta">
+                    <div class="pcard__price-block">
+                        <span class="pcard__meta-label">Unit Price</span>
+                        <span class="pcard__price">Ksh {{ "{:,.2f}".format(product.selling_price or 0) }}</span>
+                    </div>
+                    <div class="pcard__stock-block">
+                        <span class="pcard__meta-label">Stock</span>
+                        <span class="pcard__stock {% if out_of_stock %}pcard__stock--none{% elif low_stock %}pcard__stock--low{% else %}pcard__stock--ok{% endif %}">
+                            {% if out_of_stock %}
+                                <i class="bi bi-x-circle-fill"></i> None
+                            {% elif low_stock %}
+                                <i class="bi bi-exclamation-triangle-fill"></i> {{ product.quantity }} left
+                            {% else %}
+                                <i class="bi bi-check-circle-fill"></i> {{ product.quantity }} units
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== CART FORM — standalone, no nesting ===== -->
+            <div class="pcard__actions">
+                <form action="{{ url_for('add_to_cart', product_id=product.id) }}" method="POST" class="pcard__cart-form">
+                    <div class="pcard__qty-row">
+                        <label class="pcard__qty-label">QTY</label>
+                        <div class="pcard__qty-controls">
+                            <button type="button" class="qty-btn qty-btn--dec" onclick="adjustQty(this, -1)" {% if is_expired or out_of_stock %}disabled{% endif %}>
+                                <i class="bi bi-dash"></i>
+                            </button>
+                            <input
+                                type="number"
+                                name="quantity"
+                                class="pcard__qty-input"
+                                min="1"
+                                max="{{ product.quantity }}"
+                                value="1"
+                                {% if is_expired or out_of_stock %}disabled{% endif %}
+                            >
+                            <button type="button" class="qty-btn qty-btn--inc" onclick="adjustQty(this, 1)" {% if is_expired or out_of_stock %}disabled{% endif %}>
+                                <i class="bi bi-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button
+                        type="submit"
+                        class="pcard__cart-btn {% if is_expired or out_of_stock %}pcard__cart-btn--disabled{% endif %}"
+                        {% if out_of_stock or is_expired %}disabled{% endif %}
+                    >
+                        {% if is_expired %}
+                            <i class="bi bi-slash-circle"></i> Cannot Sell
+                        {% elif out_of_stock %}
+                            <i class="bi bi-x-circle"></i> Out of Stock
+                        {% else %}
+                            <i class="bi bi-cart-plus-fill"></i> Add to Cart
+                        {% endif %}
+                    </button>
+                </form>
+
+                <!-- ===== ADMIN ACTIONS — separate form, OUTSIDE the cart form ===== -->
+                {% if is_admin %}
+                <div class="pcard__admin-row">
+                    <a href="{{ url_for('edit_product', id=product.id) }}" class="pcard__admin-btn pcard__admin-btn--edit">
+                        <i class="bi bi-pencil-square"></i> Edit
+                    </a>
+                    <form
+                        action="{{ url_for('delete_product', id=product.id) }}"
+                        method="POST"
+                        class="pcard__delete-form"
+                        onsubmit="return confirm('Permanently delete \'{{ product.name }}\'? This cannot be undone.');"
+                    >
+                        <button type="submit" class="pcard__admin-btn pcard__admin-btn--delete">
+                            <i class="bi bi-trash-fill"></i> Delete
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+
+        </div>
+        {% else %}
+        <!-- Empty State -->
+        <div class="inv-empty">
+            <div class="inv-empty-icon"><i class="bi bi-search-heart"></i></div>
+            <h4 class="inv-empty-title">No products found</h4>
+            <p class="inv-empty-sub">Try adjusting your search, or add new products to the inventory.</p>
+            <a href="{{ url_for('products') }}" class="inv-btn inv-btn-primary mt-3">
+                <i class="bi bi-arrow-counterclockwise"></i> View All Inventory
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+
+<!-- ===== STYLES ===== -->
+<style>
+/* ---------- RESET / BASE ---------- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+    --ink:        #0b0f1a;
+    --ink-soft:   #374151;
+    --ink-muted:  #6b7280;
+    --surface:    #ffffff;
+    --surface-2:  #f8fafc;
+    --surface-3:  #f1f5f9;
+    --border:     #e2e8f0;
+    --border-strong: #cbd5e1;
+
+    --green:      #10b981;
+    --green-light:#d1fae5;
+    --green-glow: rgba(16,185,129,0.18);
+
+    --blue:       #2563eb;
+    --blue-light: #dbeafe;
+    --blue-glow:  rgba(37,99,235,0.15);
+
+    --amber:      #d97706;
+    --amber-light:#fef3c7;
+
+    --red:        #dc2626;
+    --red-light:  #fee2e2;
+
+    --accent:     #6366f1;
+    --accent-light:#e0e7ff;
+
+    --radius-sm:  8px;
+    --radius-md:  14px;
+    --radius-lg:  20px;
+    --radius-xl:  28px;
+
+    --shadow-sm:  0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md:  0 4px 16px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
+    --shadow-lg:  0 12px 40px rgba(0,0,0,0.10), 0 4px 12px rgba(0,0,0,0.06);
+    --shadow-xl:  0 24px 60px rgba(0,0,0,0.13), 0 8px 20px rgba(0,0,0,0.07);
+
+    --font-display: 'Syne', sans-serif;
+    --font-body:    'DM Sans', sans-serif;
+
+    --transition: 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body { font-family: var(--font-body); color: var(--ink); background: var(--surface-2); }
+
+/* ---------- WRAPPER ---------- */
+.inv-wrapper {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 2.5rem 1.75rem 4rem;
+    /* Revealed by JS once fonts are ready */
+    transition: opacity 0.3s ease;
+}
+
+/* ---------- HEADER ---------- */
+.inv-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+    flex-wrap: wrap;
+}
+
+.inv-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-family: var(--font-body);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 0.6rem;
+}
+.inv-eyebrow-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse-dot 2s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.5; transform: scale(0.7); }
+}
+
+.inv-title {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 800;
+    color: var(--ink);
+    line-height: 1.08;
+    letter-spacing: -0.03em;
+}
+.inv-title-accent {
+    background: linear-gradient(135deg, var(--green) 0%, var(--blue) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.inv-subtitle {
+    font-size: 0.9rem;
+    color: var(--ink-muted);
+    margin-top: 0.45rem;
+    font-weight: 400;
+}
+
+.inv-header-right {
+    display: flex;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+/* ---------- BUTTONS ---------- */
+.inv-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.6rem 1.2rem;
+    border-radius: 100px;
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: all var(--transition);
+    white-space: nowrap;
+    letter-spacing: 0.01em;
+}
+.inv-btn i { font-size: 1rem; }
+
+.inv-btn-primary {
+    background: var(--ink);
+    color: #fff;
+    box-shadow: var(--shadow-sm);
+}
+.inv-btn-primary:hover {
+    background: var(--green);
+    color: var(--ink);
+    box-shadow: 0 6px 20px var(--green-glow);
+    transform: translateY(-2px);
+}
+
+.inv-btn-ghost {
+    background: var(--surface);
+    color: var(--ink);
+    border: 1.5px solid var(--border-strong);
+    box-shadow: var(--shadow-sm);
+}
+.inv-btn-ghost:hover {
+    border-color: var(--ink);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.inv-btn-accent {
+    background: linear-gradient(135deg, var(--blue) 0%, var(--accent) 100%);
+    color: #fff;
+    box-shadow: 0 4px 14px var(--blue-glow);
+}
+.inv-btn-accent:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px var(--blue-glow);
+}
+
+/* ---------- SEARCH ---------- */
+.inv-search-wrap {
+    margin-bottom: 2.5rem;
+}
+.inv-search-form {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-xl);
+    padding: 0.5rem 0.5rem 0.5rem 1.25rem;
+    box-shadow: var(--shadow-md);
+    transition: border-color var(--transition), box-shadow var(--transition);
+}
+.inv-search-form:focus-within {
+    border-color: var(--green);
+    box-shadow: 0 0 0 4px var(--green-glow), var(--shadow-md);
+}
+.inv-search-inner {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1;
+    min-width: 0;
+}
+.inv-search-icon {
+    color: var(--ink-muted);
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+.inv-search-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-family: var(--font-body);
+    font-size: 0.975rem;
+    color: var(--ink);
+    font-weight: 400;
+    min-width: 0;
+}
+.inv-search-input::placeholder { color: var(--ink-muted); }
+.inv-search-clear {
+    color: var(--ink-muted);
+    text-decoration: none;
+    padding: 0.25rem;
+    border-radius: 50%;
+    transition: color var(--transition), background var(--transition);
+    line-height: 1;
+    flex-shrink: 0;
+}
+.inv-search-clear:hover { color: var(--red); background: var(--red-light); }
+.inv-search-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: var(--ink);
+    color: #fff;
+    border: none;
+    border-radius: 100px;
+    padding: 0.65rem 1.4rem;
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition);
+    flex-shrink: 0;
+}
+.inv-search-btn:hover {
+    background: var(--green);
+    color: var(--ink);
+    transform: translateY(-1px);
+}
+.inv-search-btn i { font-size: 1.2rem; }
+
+/* ---------- GRID ---------- */
+.inv-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1.5rem;
+    align-items: start;
+}
+
+/* ---------- PRODUCT CARD ---------- */
+.pcard {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    border: 1.5px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
+    animation: card-in 0.4s ease both;
+}
+@keyframes card-in {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.pcard:not(.pcard--expired):hover {
+    transform: translateY(-6px);
+    box-shadow: var(--shadow-xl);
+    border-color: var(--green);
+}
+.pcard--expired {
+    filter: grayscale(0.6);
+    opacity: 0.78;
+    border-color: var(--red) !important;
+    border-style: dashed !important;
+}
+
+/* Card Top Bar */
+.pcard__topbar {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.85rem 1rem 0;
+    flex-wrap: wrap;
+}
+.pcard__category {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    background: var(--surface-3);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 0.25rem 0.7rem;
+    white-space: nowrap;
+}
+.pcard__badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    justify-content: flex-end;
+}
+.pcard__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border-radius: 100px;
+    padding: 0.25rem 0.6rem;
+}
+.pcard__badge--danger { background: var(--red-light); color: var(--red); }
+.pcard__badge--warn   { background: var(--amber-light); color: var(--amber); }
+
+/* Card Body */
+.pcard__body {
+    padding: 1rem 1.1rem 0.75rem;
+    flex: 1;
+}
+.pcard__id {
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    margin-bottom: 0.3rem;
+    font-family: 'Courier New', monospace;
+}
+.pcard__name {
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1.25;
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.01em;
+}
+.pcard__expiry {
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--ink-muted);
+    margin-bottom: 0.85rem;
+}
+.pcard__expiry--bad  { color: var(--red); font-weight: 600; }
+.pcard__expiry--warn { color: var(--amber); font-weight: 600; }
+
+/* Meta Row */
+.pcard__meta {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 0.5rem;
+    background: var(--surface-3);
+    border-radius: var(--radius-sm);
+    padding: 0.65rem 0.85rem;
+}
+.pcard__meta-label {
+    display: block;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    margin-bottom: 0.2rem;
+}
+.pcard__price {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+}
+.pcard__stock-block { text-align: right; }
+.pcard__stock {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    border-radius: 100px;
+    padding: 0.2rem 0.55rem;
+}
+.pcard__stock--ok   { background: var(--green-light); color: #065f46; }
+.pcard__stock--low  { background: var(--amber-light); color: #92400e; }
+.pcard__stock--none { background: var(--red-light);   color: var(--red); }
+
+/* ---- ACTIONS AREA ---- */
+.pcard__actions {
+    padding: 0.85rem 1.1rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+/* Cart Form */
+.pcard__cart-form { display: flex; flex-direction: column; gap: 0.55rem; }
+
+.pcard__qty-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface-3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0.35rem 0.35rem 0.35rem 0.85rem;
+}
+.pcard__qty-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+}
+.pcard__qty-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+}
+.qty-btn {
+    width: 28px; height: 28px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--ink);
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all var(--transition);
+    flex-shrink: 0;
+    line-height: 1;
+}
+.qty-btn:hover:not(:disabled) { background: var(--ink); color: #fff; border-color: var(--ink); }
+.qty-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.pcard__qty-input {
+    width: 46px;
+    text-align: center;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    font-weight: 700;
+    padding: 0.25rem 0.2rem;
+    outline: none;
+    transition: border-color var(--transition);
+    -moz-appearance: textfield;
+}
+.pcard__qty-input::-webkit-outer-spin-button,
+.pcard__qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.pcard__qty-input:focus { border-color: var(--green); }
+.pcard__qty-input:disabled { background: var(--surface-3); color: var(--ink-muted); }
+
+.pcard__cart-btn {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.7rem 1rem;
+    border-radius: var(--radius-md);
+    border: none;
+    background: var(--ink);
+    color: #fff;
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition);
+    letter-spacing: 0.01em;
+}
+.pcard__cart-btn:hover:not(:disabled) {
+    background: var(--green);
+    color: var(--ink);
+    box-shadow: 0 6px 20px var(--green-glow);
+    transform: translateY(-2px);
+}
+.pcard__cart-btn--disabled,
+.pcard__cart-btn:disabled {
+    background: var(--surface-3);
+    color: var(--ink-muted);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Admin Row — SEPARATE from cart form */
+.pcard__admin-row {
+    display: flex;
+    gap: 0.5rem;
+}
+.pcard__delete-form { flex: 1; display: flex; }
+.pcard__admin-btn {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    border: 1.5px solid transparent;
+    transition: all var(--transition);
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+}
+.pcard__admin-btn--edit {
+    background: var(--blue-light);
+    color: var(--blue);
+    border-color: rgba(37,99,235,0.2);
+}
+.pcard__admin-btn--edit:hover {
+    background: var(--blue);
+    color: #fff;
+    border-color: var(--blue);
+    transform: translateY(-1px);
+}
+.pcard__admin-btn--delete {
+    width: 100%;
+    background: var(--red-light);
+    color: var(--red);
+    border-color: rgba(220,38,38,0.2);
+}
+.pcard__admin-btn--delete:hover {
+    background: var(--red);
+    color: #fff;
+    border-color: var(--red);
+    transform: translateY(-1px);
+}
+
+/* ---------- EMPTY STATE ---------- */
+.inv-empty {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 5rem 2rem;
+    text-align: center;
+}
+.inv-empty-icon {
+    font-size: 4rem;
+    color: var(--border-strong);
+    margin-bottom: 1.25rem;
+    line-height: 1;
+}
+.inv-empty-title {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 0.5rem;
+}
+.inv-empty-sub {
+    font-size: 0.9rem;
+    color: var(--ink-muted);
+    max-width: 360px;
+}
+
+/* ---------- RESPONSIVE ---------- */
+@media (max-width: 768px) {
+    .inv-wrapper { padding: 1.5rem 1rem 3rem; }
+    .inv-header { flex-direction: column; align-items: flex-start; }
+    .inv-header-right { width: 100%; }
+    .inv-btn { flex: 1; justify-content: center; }
+    .inv-search-form { flex-wrap: wrap; }
+    .inv-search-btn { width: 100%; justify-content: center; }
+    .inv-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
+}
+
+@media (max-width: 480px) {
+    .inv-grid { grid-template-columns: 1fr; }
+}
+</style>
+
+<script>
+/* ── Quantity stepper ── */
+function adjustQty(btn, delta) {
+    const controls = btn.closest('.pcard__qty-controls');
+    const input = controls.querySelector('.pcard__qty-input');
+    const min = parseInt(input.min) || 1;
+    const max = parseInt(input.max) || 9999;
+    let val = parseInt(input.value) || 1;
+    val = Math.min(max, Math.max(min, val + delta));
+    input.value = val;
+}
+
+/* ── Stagger card animation delays ── */
+document.querySelectorAll('.pcard').forEach((card, i) => {
+    card.style.animationDelay = `${i * 0.05}s`;
+});
+
+/* ── Anti-FOUC: reveal page only after fonts are loaded ──
+   Uses the FontFace API. Falls back after 800ms so the page
+   never gets stuck invisible on slow connections. */
+(function () {
+    var wrapper = document.querySelector('.inv-wrapper');
+    if (!wrapper) return;
+
+    function reveal() {
+        wrapper.style.visibility = 'visible';
+        wrapper.style.opacity = '1';
+    }
+
+    if (document.fonts && document.fonts.ready) {
+        // Promise resolves once all declared fonts have loaded
+        var timer = setTimeout(reveal, 800); // safety fallback
+        document.fonts.ready.then(function () {
+            clearTimeout(timer);
+            reveal();
+        });
+    } else {
+        // Browser doesn't support FontFace API — reveal immediately
+        reveal();
+    }
+})();
+</script>
+
+{% endblock %}

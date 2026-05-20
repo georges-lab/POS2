@@ -1,0 +1,63 @@
+<!-- Admin Dashboard Template -->
+{% extends 'base.html' %}
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="container">
+  <h2 class="my-4">Admin Dashboard - Sales Overview</h2>
+
+  <table class="table table-bordered">
+    <thead class="table-dark">
+      <tr>
+        <th>Product Name</th>
+        <th>Quantity Sold</th>
+        <th>Unit Price</th>
+        <th>Total Price</th>
+        <th>Timestamp</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for sale in sales %}
+      <tr>
+        <td>{{ sale.product_name }}</td>
+        <td>{{ sale.quantity_sold }}</td>
+        <td>Ksh {{ sale.unit_price }}</td>
+        <td>Ksh {{ sale.total_price }}</td>
+        <td>{{ sale.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+<!-- AJAX Cart Quantity Update Script -->
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const updateButtons = document.querySelectorAll('.update-cart');
+
+    updateButtons.forEach(button => {
+      button.addEventListener('click', function () {
+        const itemId = this.dataset.id;
+        const newQty = document.querySelector(`#qty-${itemId}`).value;
+
+        fetch(`/update_cart_quantity/${itemId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+          },
+          body: JSON.stringify({ quantity: newQty })
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            location.reload();
+          } else {
+            alert('Error updating quantity.');
+          }
+        });
+      });
+    });
+  });
+</script>

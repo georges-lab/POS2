@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4 mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold"><i class="bi bi-file-earmark-text me-2"></i>Sales Invoices</h2>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary rounded-pill">
+            <i class="bi bi-house-door me-1"></i> Dashboard
+        </a>
+    </div>
+
+    <div class="card shadow-sm border-0 rounded-3">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">ID</th>
+                            <th>Customer</th>
+                            <th>Date & Time</th>
+                            <th class="text-end">Total Amount</th>
+                            <th class="text-end">Status</th>
+                            <th class="text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for inv in invoices %}
+                        <tr>
+                            <td class="ps-4 fw-bold text-primary">#{{ inv.id }}</td>
+                            <td>
+                                <div class="fw-bold">{{ inv.client.name if inv.client else "Walk-in Customer" }}</div>
+                                {% if inv.client %}
+                                <small class="text-muted">{{ inv.client.phone }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="small">{{ inv.timestamp.strftime("%d %b %Y") }}</div>
+                                <div class="smaller text-muted">{{ inv.timestamp.strftime("%I:%M %p") }}</div>
+                            </td>
+                            <td class="text-end fw-bold">
+                                KES {{ "{:,.2f}".format(inv.total_amount or 0) }}
+                            </td>
+                            <td class="text-end">
+                                {% if inv.status|lower == 'paid' or inv.status|lower == 'completed' %}
+                                    <span class="badge bg-success-soft text-success rounded-pill px-3">Paid</span>
+                                {% elif inv.status|lower == 'partial' %}
+                                    <span class="badge bg-warning-soft text-warning rounded-pill px-3">Partial</span>
+                                {% else %}
+                                    <span class="badge bg-secondary-soft text-secondary rounded-pill px-3">{{ inv.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <a href="{{ url_for('invoice_view', receipt_id=inv.id) }}" class="btn btn-sm btn-primary rounded-pill px-3">
+                                    View / Pay
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Light badge backgrounds for a modern look */
+    .bg-success-soft { background-color: #e8f5e9; }
+    .bg-warning-soft { background-color: #fff8e1; }
+    .bg-secondary-soft { background-color: #f5f5f5; }
+    .smaller { font-size: 0.75rem; }
+    .table thead th { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; }
+</style>
+{% endblock %}

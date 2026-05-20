@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Add New Product | POS System{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0 pt-4">
+                    <h3 class="fw-bold text-dark mb-0">
+                        <i class="bi bi-box-seam text-primary me-2"></i> Add New Product
+                    </h3>
+                    <p class="text-muted small">Enter product details to update your inventory.</p>
+                </div>
+
+                <div class="card-body p-4">
+                    <form method="POST" action="{{ url_for('add_product') }}">
+                        
+                        <div class="mb-3">
+                            <label for="name" class="form-label fw-bold small">Product Name</label>
+                            <input type="text" class="form-control border-light shadow-none" id="name" name="name" placeholder="e.g. Panadol 500mg" required autocomplete="off">
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="category" class="form-label fw-bold small">Category</label>
+                                <input type="text" class="form-control border-light shadow-none" id="category" name="category" placeholder="e.g. Tablets" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="quantity" class="form-label fw-bold small">Initial Stock</label>
+                                <input type="number" class="form-control border-light shadow-none" id="quantity" name="quantity" placeholder="0" min="0" required>
+                            </div>
+                        </div>
+
+                        <hr class="my-4 text-light">
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="buying_price" class="form-label fw-bold small text-secondary">Buying Price (Cost)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-light text-muted">Ksh</span>
+                                    <input type="number" step="0.01" class="form-control border-light shadow-none" id="buying_price" name="buying_price" placeholder="0.00" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="selling_price" class="form-label fw-bold small text-success">Selling Price (Retail)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-soft-success border-light text-success">Ksh</span>
+                                    <input type="number" step="0.01" class="form-control border-light shadow-none" id="selling_price" name="selling_price" placeholder="0.00" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="expiry_date" class="form-label fw-bold small">Expiry Date</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-light text-muted"><i class="bi bi-calendar-event"></i></span>
+                                <input type="date" name="expiry_date" id="expiry_date" class="form-control border-light shadow-none">
+                            </div>
+                            <div class="form-text text-muted small">Leave blank if the product does not expire.</div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="barcode" class="form-label fw-bold small">Barcode (Optional)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-light text-muted"><i class="bi bi-upc-scan"></i></span>
+                                <input type="text" name="barcode" id="barcode" class="form-control border-light shadow-none" placeholder="Scan or type barcode" autocomplete="off">
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary py-2 fw-bold shadow-sm">
+                                <i class="bi bi-check-circle me-2"></i> Save Product to Inventory
+                            </button>
+                            <a href="{{ url_for('products') }}" class="btn btn-link text-muted text-decoration-none small mt-2">
+                                <i class="bi bi-arrow-left me-1"></i> Cancel and go back
+                            </a>
+                        </div>
+                    </form>
+                </div> </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-soft-success { background-color: #e8fadf; }
+    .form-control:focus { border-color: #0d6efd; box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.05); }
+    /* Ensure the date picker looks consistent */
+    input[type="date"] { min-height: 45px; }
+</style>
+{% endblock %}

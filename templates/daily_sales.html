@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Daily Sales Summary{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4 px-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <div>
+            <h2 class="fw-bolder text-dark mb-0"><i class="bi bi-calendar-check me-2 text-primary"></i>Daily Sales Summary</h2>
+            <p class="text-muted mb-0">Review performance by date.</p>
+        </div>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-primary rounded-pill px-4">Dashboard</a>
+    </div>
+
+    <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-4 py-3 text-muted smaller fw-bold">DATE</th>
+                        <th class="py-3 text-end text-muted smaller fw-bold">TOTAL REVENUE</th>
+                        <th class="py-3 text-center text-muted smaller fw-bold">TRANSACTIONS</th>
+                        <th class="py-3 text-center text-muted smaller fw-bold">STATUS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in sales_data %}
+                    <tr>
+                        <td class="ps-4 fw-bold text-dark">{{ row.sale_date }}</td>
+                        <td class="text-end fw-bolder text-primary">
+                            KES {{ "{:,.2f}".format(row.total_sales or 0) }}
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-light text-dark border rounded-pill px-3">{{ row.transactions }} Sales</span>
+                        </td>
+                        <td class="text-center">
+                            {% if row.total_sales > 10000 %}
+                                <span class="badge bg-success-soft text-success rounded-pill px-3">
+                                    <i class="bi bi-star-fill me-1"></i> Excellent
+                                </span>
+                            {% else %}
+                                <span class="badge bg-info-soft text-info rounded-pill px-3">
+                                    <i class="bi bi-check-circle me-1"></i> Completed
+                                </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-success-soft { background-color: #e8f5e9; }
+    .bg-info-soft { background-color: #e3f2fd; }
+    .smaller { font-size: 0.7rem; letter-spacing: 0.1rem; }
+</style>
+{% endblock %}

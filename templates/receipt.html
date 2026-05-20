@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+    /* 1. SCREEN VIEW - Centered and Pretty */
+    .main-wrapper { 
+        padding-top: 80px !important; 
+        background-color: #f8f9fa; 
+        min-height: 100vh; 
+    }
+    .receipt-card { 
+        max-width: 450px; 
+        border-radius: 15px; 
+        background: #fff; 
+        border: none;
+    }
+
+    /* 2. THE ULTIMATE PRINT FIX - Center & Display Data */
+    @media print {
+        @page {
+            size: 80mm auto;
+            margin: 0;
+        }
+
+        /* Force centering on the printed page */
+        html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            display: flex !important;
+            justify-content: center !important;
+            width: 100% !important;
+        }
+
+        /* Hide everything but the card */
+        .no-print, nav, footer, .navbar, .payment-section, .btn {
+            display: none !important;
+        }
+
+        .main-wrapper {
+            padding: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
+            display: flex !important;
+            justify-content: center !important;
+        }
+
+        .receipt-card {
+            visibility: visible !important;
+            width: 80mm !important;
+            max-width: 80mm !important;
+            margin: 0 auto !important; /* This centers it in Windows Print */
+            padding: 5mm !important;
+            box-shadow: none !important;
+            border: none !important;
+            position: relative !important;
+        }
+
+        /* Ensure all text is dark and visible */
+        .receipt-card * {
+            visibility: visible !important;
+            color: #000 !important;
+        }
+    }
+</style>
+
+<div class="container main-wrapper">
+    <div class="d-flex justify-content-between mb-4 no-print mx-auto" style="max-width: 450px;">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-light rounded-pill">← Exit</a>
+        <button onclick="window.print()" class="btn btn-primary px-4 rounded-pill">PRINT</button>
+    </div>
+
+    <div class="card receipt-card shadow-sm p-4 mx-auto mb-5">
+        <div class="text-center pb-3 mb-3 border-bottom">
+            <h4 class="fw-bolder mb-0 text-uppercase">{{ receipt.customer_name or "OFFICIAL RECEIPT" }}</h4>
+            <p class="text-muted small">#{{ receipt.id }} | {{ receipt.timestamp.strftime('%d/%m/%y %H:%M') }}</p>
+        </div>
+
+        <table class="table table-sm table-borderless mb-0">
+            <thead>
+                <tr class="small text-muted border-bottom">
+                    <th>ITEM</th>
+                    <th class="text-center">QTY</th>
+                    <th class="text-end">TOTAL</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in sales %}
+                <tr>
+                    <td>{{ s.product_name }}</td>
+                    <td class="text-center">x{{ s.quantity_sold }}</td>
+                    <td class="text-end">KES {{ "{:,.2f}".format(s.total_amount) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="pt-3 mt-2" style="border-top: 2px solid #333;">
+            <div class="d-flex justify-content-between fw-bold fs-5">
+                <span>TOTAL:</span>
+                <span>KES {{ "{:,.2f}".format(receipt.total_amount) }}</span>
+            </div>
+
+            {# DATA FIX: Check URL params first, then Database #}
+            {% set cash_val = request.args.get('cash_received') or receipt.cash_received or 0 %}
+            {% set cash_float = cash_val | float %}
+            
+            <div class="d-flex justify-content-between text-muted small mt-2">
+                <span>Cash Received:</span>
+                <span id="printCash">KES {{ "{:,.2f}".format(cash_float) }}</span>
+            </div>
+            <div class="d-flex justify-content-between fw-bold text-dark mt-1">
+                <span>Change Given:</span>
+                <span id="printChange">KES {{ "{:,.2f}".format(cash_float - receipt.total_amount if cash_float > receipt.total_amount else 0) }}</span>
+            </div>
+        </div>
+
+        <div class="text-center mt-4 pt-3 border-top">
+            <p class="small fw-bold text-uppercase mb-0">Thank you!</p>
+        </div>
+    </div>
+
+    {# ... keep your payment-section and scripts here ... #}
+</div>
+{% endblock %}

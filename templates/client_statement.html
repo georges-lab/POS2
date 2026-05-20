@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h2>Statement - {{ client.name }}</h2>
+  <p><strong>Total Due:</strong> {{ "%.2f"|format(total_due) }}</p>
+
+  <table class="table table-striped">
+    <thead><tr>
+      <th>Invoice #</th><th>Date</th>
+      <th>Total</th><th>Paid</th><th>Balance</th><th>Status</th>
+    </tr></thead>
+    <tbody>
+      {% for inv in invoices %}
+      <tr>
+        <td><a href="{{ url_for('invoice_view', receipt_id=inv.id) }}">#{{ inv.id }}</a></td>
+        <td>{{ inv.timestamp.strftime("%Y-%m-%d %H:%M") }}</td>
+        <td>{{ "%.2f"|format(inv.total_amount) }}</td>
+        <td>{{ "%.2f"|format(inv.amount_paid) }}</td>
+        <td>{{ "%.2f"|format(inv.balance_due) }}</td>
+        <td>{{ inv.status }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

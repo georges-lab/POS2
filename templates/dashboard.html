@@ -1,0 +1,1164 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard — BizTool POS{% endblock %}
+
+{% block head %}
+<script src="{{ url_for('static', filename='js/zxing.min.js') }}" defer></script>
+<style>
+/* ════════════════════════════════════════
+   DASHBOARD — PAGE-LEVEL STYLES
+   All shared tokens/components come from base.html
+════════════════════════════════════════ */
+
+/* ── Greeting Banner ── */
+.dash-greeting {
+  background: var(--ink);
+  border-radius: var(--r-lg);
+  padding: 1.75rem 2.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 1.25rem;
+  position: relative;
+  overflow: hidden;
+  animation: card-in 0.4s var(--ease) both;
+}
+.dash-greeting::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 55% 80% at 0% 50%,  rgba(16,185,129,0.14) 0%, transparent 65%),
+    radial-gradient(ellipse 40% 70% at 100% 20%, rgba(37,99,235,0.10) 0%, transparent 60%);
+  pointer-events: none;
+}
+.dash-greeting::after {
+  content: '';
+  position: absolute; right: -30px; top: -30px;
+  width: 200px; height: 200px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(16,185,129,0.07) 0%, transparent 70%);
+  pointer-events: none;
+}
+.dash-greeting-left  { position: relative; z-index: 1; flex: 1; min-width: 0; }
+.dash-greeting-right { display: flex; gap: 0.6rem; flex-wrap: wrap; position: relative; z-index: 1; flex-shrink: 0; }
+.dash-greeting-eyebrow {
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--green);
+  display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.5rem;
+}
+.dash-greeting-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--green);
+  animation: dot-pulse 2.2s ease-in-out infinite;
+}
+@keyframes dot-pulse {
+  0%,100% { opacity:1; transform:scale(1); }
+  50%      { opacity:.4; transform:scale(.6); }
+}
+.dash-greeting-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 3vw, 2rem); font-weight: 800;
+  color: #fff; letter-spacing: -0.035em; line-height: 1.1; margin: 0 0 0.3rem;
+}
+.dash-greeting-title span { color: var(--green); }
+.dash-greeting-sub { font-size: 0.855rem; color: rgba(255,255,255,0.45); margin: 0; }
+
+/* ════════════════════════════════════════
+   QUICK-NAV STRIP  —  replaces the sidebar
+   Every link that was in the original sidebar
+   lives here as a pill button.
+════════════════════════════════════════ */
+.dash-quicknav {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.75rem;
+  padding: 1rem 1.25rem;
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  border: 1.5px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  animation: card-in 0.4s 0.06s var(--ease) both;
+}
+
+.dash-quicknav-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  white-space: nowrap;
+  margin-right: 0.25rem;
+  padding-right: 0.75rem;
+  border-right: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.qnav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  padding: 0.42rem 0.9rem;
+  border-radius: var(--r-full);
+  font-family: var(--font-body);
+  font-size: 0.815rem;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1.5px solid var(--border);
+  background: var(--surface-2);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: all var(--t);
+  white-space: nowrap;
+  line-height: 1;
+  position: relative;
+}
+.qnav-btn i { font-size: 0.88rem; line-height: 1; }
+
+/* Individual hover colours */
+.qnav-btn.qn-sales:hover   { background:var(--green-light);  border-color:var(--green);  color:#065f46; }
+.qnav-btn.qn-inv:hover     { background:var(--blue-light);   border-color:var(--blue);   color:var(--blue); }
+.qnav-btn.qn-supp:hover    { background:var(--surface-4);    border-color:#64748b;       color:#1e293b; }
+.qnav-btn.qn-cart:hover    { background:var(--green-light);  border-color:var(--green);  color:#065f46; }
+.qnav-btn.qn-invoices:hover{ background:var(--amber-light);  border-color:var(--amber);  color:#92400e; }
+.qnav-btn.qn-profit:hover  { background:var(--red-light);    border-color:var(--red);    color:var(--red); }
+.qnav-btn.qn-security:hover{ background:var(--accent-light); border-color:var(--accent); color:var(--accent); }
+
+/* Profit Report dashed special styling */
+.qnav-btn.qn-profit {
+  border-style: dashed;
+  border-color: rgba(220,38,38,0.4);
+  color: var(--red);
+  background: var(--red-light);
+}
+
+/* Logout */
+.qnav-btn.qn-logout {
+  color: var(--red);
+  border-color: rgba(220,38,38,0.25);
+  background: transparent;
+  margin-left: auto;
+}
+.qnav-btn.qn-logout:hover {
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+}
+
+/* Active state — current page */
+.qnav-btn.qn-active {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+}
+
+/* Invoices has a tiny chevron + hover submenu */
+.qnav-dropdown { position: relative; }
+.qnav-submenu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  min-width: 170px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-lg);
+  padding: 0.4rem;
+  z-index: 600;
+  animation: dropdown-in 0.18s var(--ease) both;
+}
+@keyframes dropdown-in {
+  from { opacity:0; transform:translateY(-5px) scale(.97); }
+  to   { opacity:1; transform:translateY(0) scale(1); }
+}
+.qnav-dropdown:hover .qnav-submenu,
+.qnav-dropdown:focus-within .qnav-submenu { display: block; }
+.qnav-submenu-item {
+  display: flex; align-items: center; gap: 0.45rem;
+  padding: 0.48rem 0.75rem; border-radius: var(--r-xs);
+  font-size: 0.825rem; font-weight: 500;
+  color: var(--ink-soft); text-decoration: none;
+  transition: all var(--t);
+}
+.qnav-submenu-item:hover { background: var(--surface-3); color: var(--ink); }
+.qnav-submenu-item i { font-size: 0.85rem; }
+
+/* ── Stat Grid ── */
+.dash-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(195px, 1fr));
+  gap: 1.1rem;
+  margin-bottom: 1.5rem;
+}
+
+.dash-stat {
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  border: 1.5px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  padding: 1.25rem 1.35rem;
+  display: flex; flex-direction: column; gap: 0.32rem;
+  transition: transform var(--t), box-shadow var(--t), border-color var(--t);
+  animation: card-in 0.4s var(--ease) both;
+  position: relative; overflow: hidden; cursor: default;
+}
+.dash-stat::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: var(--stat-accent, var(--green)); opacity: 0.75;
+}
+.dash-stat:hover { transform: translateY(-5px); box-shadow: var(--shadow-lg); border-color: var(--stat-accent, var(--green)); }
+
+.dash-stat-icon {
+  width: 40px; height: 40px; border-radius: var(--r-sm);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem; margin-bottom: 0.1rem; flex-shrink: 0;
+}
+.dash-stat-label {
+  font-size: 0.66rem; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--ink-muted);
+}
+.dash-stat-value {
+  font-family: var(--font-display); font-size: 1.5rem; font-weight: 800;
+  color: var(--ink); letter-spacing: -0.03em; line-height: 1.05;
+}
+.dash-stat-sub { font-size: 0.74rem; color: var(--ink-muted); }
+
+/* Expiry split card */
+.dash-stat-split { display: flex; }
+.dash-stat-split-half {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 0.4rem; padding: 0.8rem 0.5rem;
+}
+.dash-stat-split-half + .dash-stat-split-half { border-left: 1px solid var(--border); }
+.dash-stat-split-num {
+  font-family: var(--font-display); font-size: 2rem; font-weight: 800; line-height: 1;
+}
+.dash-stat-split-label {
+  font-size: 0.63rem; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--ink-muted);
+}
+
+/* ── Layout grids ── */
+.dash-main-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+.dash-full { grid-column: 1 / -1; }
+
+.dash-section-label {
+  font-family: var(--font-display); font-size: 0.92rem; font-weight: 700;
+  color: var(--ink); letter-spacing: -0.01em;
+  display: flex; align-items: center; gap: 0.45rem; margin: 0;
+}
+.dash-section-label i { font-size: 1rem; }
+
+/* ── Barcode Scanner ── */
+.dash-scanner video {
+  width: 100%; border-radius: var(--r-md); background: #000;
+  display: block; aspect-ratio: 4/3; object-fit: cover;
+}
+.dash-scanner-result {
+  margin-top: 0.75rem; width: 100%;
+  padding: 0.6rem 0.9rem;
+  border: 1.5px solid var(--border); border-radius: var(--r-sm);
+  background: var(--surface-3);
+  font-family: 'Courier New', monospace; font-size: 0.875rem; color: var(--ink);
+  outline: none; transition: border-color var(--t), background var(--t);
+}
+
+/* ── Expiry status badges ── */
+.exp-badge-danger {
+  background: var(--red-light); color: var(--red);
+  border-radius: var(--r-full); padding: .22rem .6rem;
+  font-size: .63rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .07em; display: inline-flex; align-items: center; gap: .25rem;
+}
+.exp-badge-warn {
+  background: var(--amber-light); color: var(--amber);
+  border-radius: var(--r-full); padding: .22rem .6rem;
+  font-size: .63rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .07em; display: inline-flex; align-items: center; gap: .25rem;
+}
+
+/* Low-stock pulse */
+.pulse-badge { animation: pulse-red 2s ease-in-out infinite; }
+@keyframes pulse-red {
+  0%,100% { box-shadow: 0 0 0 0   rgba(220,38,38,0.35); }
+  50%      { box-shadow: 0 0 0 6px rgba(220,38,38,0); }
+}
+
+/* ── Fast-moving progress bar ── */
+.fm-bar-wrap {
+  flex: 1; height: 6px; background: var(--surface-3);
+  border-radius: 99px; overflow: hidden; min-width: 40px;
+}
+.fm-bar-fill { height: 100%; background: var(--green); border-radius: 99px; }
+
+/* ════════════════════════════════════════
+   DRAGGABLE CALCULATOR
+════════════════════════════════════════ */
+.dash-calc {
+  position: fixed; right: 22px; bottom: 88px; width: 264px;
+  background: #0f172a;
+  border: 1.5px solid rgba(255,255,255,0.09);
+  border-radius: var(--r-lg);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  z-index: 1200; user-select: none; touch-action: none; overflow: hidden;
+}
+.calc-topbar {
+  background: rgba(0,0,0,0.35); padding: 0.6rem 1rem;
+  display: flex; align-items: center; justify-content: space-between;
+  cursor: move; border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.calc-topbar-label {
+  font-family: var(--font-display); font-size: 0.72rem; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.45);
+  display: flex; align-items: center; gap: 0.4rem;
+}
+.calc-topbar-label i { color: var(--green); font-size: 0.85rem; }
+.calc-minimize-btn {
+  background: none; border: none; cursor: pointer;
+  color: rgba(255,255,255,0.3); font-size: 0.8rem;
+  padding: 0.15rem 0.3rem; border-radius: var(--r-xs);
+  transition: all var(--t); line-height: 1;
+}
+.calc-minimize-btn:hover { background: rgba(255,255,255,0.09); color: #fff; }
+.calc-body { padding: 0.8rem; }
+.calc-display {
+  background: #000; border: 1px solid rgba(255,255,255,0.06);
+  border-radius: var(--r-sm); padding: 0.85rem 1rem; margin-bottom: 0.7rem;
+  text-align: right;
+}
+.calc-display-expr {
+  font-size: 0.68rem; color: rgba(255,255,255,0.28); min-height: 1em;
+  margin-bottom: 0.18rem; font-family: 'Courier New', monospace;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.calc-display-main {
+  font-family: var(--font-display); font-size: 1.75rem; font-weight: 800;
+  color: var(--green); letter-spacing: -0.02em;
+  overflow-x: auto; white-space: nowrap; line-height: 1;
+}
+.calc-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 0.42rem; }
+.calc-btn {
+  border: none; border-radius: var(--r-sm); padding: 0.62rem 0.25rem;
+  font-family: var(--font-body); font-size: 0.88rem; font-weight: 700;
+  cursor: pointer; transition: all 0.11s ease; line-height: 1;
+}
+.calc-btn:hover  { transform: scale(1.07); }
+.calc-btn:active { transform: scale(0.94); }
+.calc-btn-num   { background: rgba(255,255,255,0.07); color: #fff; border: 1px solid rgba(255,255,255,0.06); }
+.calc-btn-num:hover  { background: rgba(255,255,255,0.14); }
+.calc-btn-op    { background: rgba(16,185,129,0.15); color: var(--green); border: 1px solid rgba(16,185,129,0.22); }
+.calc-btn-op:hover   { background: rgba(16,185,129,0.3); }
+.calc-btn-eq    { background: var(--green); color: var(--ink); border: none; }
+.calc-btn-eq:hover   { background: var(--green-dark); }
+.calc-btn-clear { background: rgba(220,38,38,0.15); color: var(--red); border: 1px solid rgba(220,38,38,0.22); }
+.calc-btn-clear:hover{ background: var(--red); color: #fff; }
+.calc-btn-back  { background: rgba(217,119,6,0.15); color: var(--amber); border: 1px solid rgba(217,119,6,0.22); }
+.calc-btn-back:hover { background: var(--amber); color: #fff; }
+
+.calc-fab {
+  position: fixed; right: 22px; bottom: 22px;
+  width: 48px; height: 48px;
+  background: var(--ink); border: 2px solid rgba(16,185,129,0.45);
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  color: var(--green); font-size: 1.1rem; cursor: pointer; z-index: 1201;
+  box-shadow: var(--shadow-lg); transition: all var(--t);
+}
+.calc-fab:hover { background: var(--green); color: var(--ink); border-color: var(--green); transform: scale(1.09); }
+
+/* ── Expense Modal ── */
+.biz-modal .modal-content { border:none; border-radius:var(--r-lg); box-shadow:var(--shadow-xl); overflow:hidden; }
+.biz-modal .modal-header  { background:var(--ink); border-bottom:3px solid var(--red); padding:1.1rem 1.4rem; }
+.biz-modal .modal-title   { font-family:var(--font-display); font-weight:700; font-size:1rem; color:#fff; letter-spacing:-0.01em; }
+.biz-modal .modal-body    { padding:1.4rem; background:var(--surface); }
+.biz-modal .modal-footer  { padding:1rem 1.4rem; background:var(--surface-2); border-top:1px solid var(--border); gap:0.5rem; }
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .dash-main-grid { grid-template-columns: 1fr; }
+  .dash-full      { grid-column: 1; }
+}
+@media (max-width: 640px) {
+  .dash-stats                 { grid-template-columns: 1fr 1fr; }
+  .dash-greeting              { flex-direction: column; align-items: flex-start; }
+  .dash-greeting-right        { width: 100%; }
+  .dash-calc                  { width: calc(100vw - 2rem); right: 1rem; bottom: 80px; }
+  .qnav-btn                   { font-size: 0.77rem; padding: 0.4rem 0.72rem; }
+}
+@media (max-width: 420px) {
+  .dash-stats                 { grid-template-columns: 1fr; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-wrap">
+
+  <!-- ══════════════════════════════════════
+       GREETING BANNER
+  ══════════════════════════════════════ -->
+  <div class="dash-greeting">
+    <div class="dash-greeting-left">
+      <div class="dash-greeting-eyebrow">
+        <span class="dash-greeting-dot"></span>
+        Live Overview
+      </div>
+      <h1 class="dash-greeting-title">
+      Hi {{ time_of_day }}, <span>{{ current_user.username }}</span>
+      </h1>
+      <p class="dash-greeting-sub">Here's what's happening with your business right now.</p>
+    </div>
+    <div class="dash-greeting-right">
+      <a href="{{ url_for('daily_sales') }}" class="biz-btn biz-btn-ghost"
+         style="border-color:rgba(255,255,255,0.15);color:rgba(0,0,0,1)">
+        <i class="bi bi-bar-chart-line-fill"></i> Daily Sales
+      </a>
+      <a href="{{ url_for('cart') }}" class="biz-btn biz-btn-green">
+        <i class="bi bi-cart-plus-fill"></i> New Sale
+      </a>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       QUICK-NAV STRIP
+       Every link from the original sidebar lives
+       here — coloured pill buttons, Invoices with
+       dropdown submenu, Profit Report admin-gated.
+  ══════════════════════════════════════ -->
+  <div class="dash-quicknav">
+
+    <span class="dash-quicknav-label">Quick Links</span>
+
+    <!-- Daily Sales -->
+    <a href="{{ url_for('daily_sales') }}"
+       class="qnav-btn qn-sales {{ 'qn-active' if request.endpoint == 'daily_sales' }}">
+      <i class="bi bi-bar-chart-line-fill" style="color:var(--green)"></i>
+      Daily Sales
+    </a>
+
+    <!-- Inventory -->
+    <a href="{{ url_for('products') }}"
+       class="qnav-btn qn-inv {{ 'qn-active' if request.endpoint == 'products' }}">
+      <i class="bi bi-box-seam-fill" style="color:var(--blue)"></i>
+      Inventory
+    </a>
+
+    <!-- Invoices — with submenu -->
+    <div class="qnav-dropdown">
+      <button class="qnav-btn qn-invoices {{ 'qn-active' if request.endpoint == 'invoices' }}">
+        <i class="bi bi-file-earmark-text-fill" style="color:var(--amber)"></i>
+        Invoices
+        <i class="bi bi-chevron-down" style="font-size:.6rem;opacity:.5;margin-left:.05rem"></i>
+      </button>
+      <div class="qnav-submenu">
+        <a href="{{ url_for('invoices') }}" class="qnav-submenu-item">
+          <i class="bi bi-list-ul" style="color:var(--amber)"></i>
+          View All Invoices
+        </a>
+      </div>
+    </div>
+
+    <!-- Suppliers -->
+    <a href="{{ url_for('suppliers') }}"
+       class="qnav-btn qn-supp {{ 'qn-active' if request.endpoint == 'suppliers' }}">
+      <i class="bi bi-truck" style="color:#64748b"></i>
+      Suppliers
+    </a>
+
+    <!-- Active Cart -->
+    <a href="{{ url_for('cart') }}"
+       class="qnav-btn qn-cart {{ 'qn-active' if request.endpoint == 'cart' }}">
+      <i class="bi bi-cart-fill" style="color:var(--green)"></i>
+      Active Cart
+    </a>
+
+    <!-- Profit Report — admin only -->
+    {% if current_user.is_authenticated and current_user.role.lower() == 'admin' %}
+    <a href="{{ url_for('profit_report') }}"
+       class="qnav-btn qn-profit {{ 'qn-active' if request.endpoint == 'profit_report' }}">
+      <i class="bi bi-graph-up-arrow"></i>
+      Profit Report
+    </a>
+    {% endif %}
+
+    <!-- Security / Change Password -->
+    <a href="{{ url_for('change_password') }}"
+       class="qnav-btn qn-security {{ 'qn-active' if request.endpoint == 'change_password' }}">
+      <i class="bi bi-shield-lock-fill" style="color:var(--accent)"></i>
+      Security
+    </a>
+
+    <!-- Logout — pushed to far right -->
+    <a href="{{ url_for('logout') }}"
+       class="qnav-btn qn-logout"
+       onclick="return confirm('Are you sure you want to log out?')">
+      <i class="bi bi-power"></i>
+      Logout
+    </a>
+
+  </div>
+
+  <!-- ══════════════════════════════════════
+       STAT CARDS
+  ══════════════════════════════════════ -->
+  <div class="dash-stats">
+
+    <!-- Total Sales -->
+    <div class="dash-stat" style="--stat-accent:var(--green)" data-stagger>
+      <div class="dash-stat-icon" style="background:var(--green-light);color:var(--green)">
+        <i class="bi bi-cash-stack"></i>
+      </div>
+      <div class="dash-stat-label">Total Sales</div>
+      <div class="dash-stat-value">Ksh {{ total_sales or '0.00' }}</div>
+      <div class="dash-stat-sub">All-time revenue</div>
+    </div>
+
+    <!-- Total Products -->
+    <div class="dash-stat" style="--stat-accent:var(--blue)" data-stagger>
+      <div class="dash-stat-icon" style="background:var(--blue-light);color:var(--blue)">
+        <i class="bi bi-boxes"></i>
+      </div>
+      <div class="dash-stat-label">Total Products</div>
+      <div class="dash-stat-value">{{ total_products or 0 }}</div>
+      <div class="dash-stat-sub">In inventory</div>
+    </div>
+
+    <!-- Total Tax -->
+    <div class="dash-stat" style="--stat-accent:var(--accent)" data-stagger>
+      <div class="dash-stat-icon" style="background:var(--accent-light);color:var(--accent)">
+        <i class="bi bi-receipt-cutoff"></i>
+      </div>
+      <div class="dash-stat-label">Total Tax</div>
+      <div class="dash-stat-value">Ksh {{ total_tax or '0.00' }}</div>
+      <div class="dash-stat-sub">Collected</div>
+    </div>
+
+    <!-- Total Discounts -->
+    <div class="dash-stat" style="--stat-accent:var(--amber)" data-stagger>
+      <div class="dash-stat-icon" style="background:var(--amber-light);color:var(--amber)">
+        <i class="bi bi-tag-fill"></i>
+      </div>
+      <div class="dash-stat-label">Total Discounts</div>
+      <div class="dash-stat-value">Ksh {{ total_discount or '0.00' }}</div>
+      <div class="dash-stat-sub">Given away</div>
+    </div>
+
+    <!-- Total Expenses — opens modal -->
+    <div class="dash-stat" style="--stat-accent:var(--red)" data-stagger>
+      <div class="dash-stat-icon" style="background:var(--red-light);color:var(--red)">
+        <i class="bi bi-wallet2"></i>
+      </div>
+      <div class="dash-stat-label">Total Expenses</div>
+      <div class="dash-stat-value" style="color:var(--red)">Ksh {{ total_expenses or '0.00' }}</div>
+      <button class="biz-btn biz-btn-danger biz-btn-sm"
+              style="margin-top:.3rem;border-radius:var(--r-sm);width:fit-content"
+              data-bs-toggle="modal" data-bs-target="#addExpenseModal">
+        <i class="bi bi-plus-lg"></i> Add Expense
+      </button>
+    </div>
+
+    <!-- Low Stock -->
+    <div class="dash-stat" style="--stat-accent:var(--red)" data-stagger>
+      <div class="dash-stat-icon" style="background:var(--red-light);color:var(--red)">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+      </div>
+      <div class="dash-stat-label">Low Stock</div>
+      <div class="dash-stat-value" style="color:var(--red)">{{ low_stock_products|length }}</div>
+      <div class="dash-stat-sub">
+        {% if low_stock_products|length > 0 %}
+          <span class="biz-badge biz-badge-red pulse-badge">
+            <i class="bi bi-circle-fill" style="font-size:.45rem"></i> Needs attention
+          </span>
+        {% else %}
+          <span class="biz-badge biz-badge-green">
+            <i class="bi bi-check-circle-fill"></i> All good
+          </span>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Stock Expiry Alerts — wide split card spanning 2 columns -->
+    <div class="dash-stat"
+         style="--stat-accent:var(--amber);padding:0;grid-column:span 2"
+         data-stagger>
+      <div style="padding:.85rem 1.25rem .65rem;border-bottom:1px solid var(--border)">
+        <div class="dash-stat-label" style="display:flex;align-items:center;gap:.35rem">
+          <i class="bi bi-calendar-x" style="color:var(--amber)"></i>
+          Stock Expiry Alerts
+        </div>
+      </div>
+      <div class="dash-stat-split">
+        <div class="dash-stat-split-half">
+          <div class="dash-stat-split-num" style="color:var(--red)">{{ expired_products|length }}</div>
+          <div class="dash-stat-split-label">Expired</div>
+          <a href="{{ url_for('products', filter='expired') }}"
+             class="biz-btn biz-btn-danger biz-btn-sm"
+             style="border-radius:var(--r-sm)">
+            <i class="bi bi-trash3"></i> Dispose
+          </a>
+        </div>
+        <div class="dash-stat-split-half">
+          <div class="dash-stat-split-num" style="color:var(--amber)">{{ expiring_soon|length }}</div>
+          <div class="dash-stat-split-label">Expiring Soon</div>
+          <a href="{{ url_for('products', filter='expiring') }}"
+             class="biz-btn biz-btn-amber biz-btn-sm"
+             style="border-radius:var(--r-sm)">
+            <i class="bi bi-tag"></i> Discount
+          </a>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /dash-stats -->
+
+  <!-- ══════════════════════════════════════
+       SCANNER + CHARTS
+  ══════════════════════════════════════ -->
+  <div class="dash-main-grid">
+
+    <!-- Barcode Scanner -->
+    <div class="biz-card dash-scanner" style="animation:card-in .4s .1s var(--ease) both">
+      <div class="biz-card-header">
+        <h3 class="dash-section-label">
+          <i class="bi bi-upc-scan" style="color:var(--blue)"></i> Barcode Scanner
+        </h3>
+        <span class="biz-badge biz-badge-blue">
+          <i class="bi bi-circle-fill" style="font-size:.45rem;animation:dot-pulse 1.5s ease-in-out infinite"></i>
+          Live
+        </span>
+      </div>
+      <div class="biz-card-body">
+        <video id="barcode-scanner" autoplay muted playsinline></video>
+        <input type="text" id="barcode-result" class="dash-scanner-result"
+               placeholder="Scan result appears here…" readonly>
+      </div>
+    </div>
+
+    <!-- Charts: Doughnut + Bar side-by-side -->
+    <div class="biz-card" style="animation:card-in .4s .18s var(--ease) both">
+      <div class="biz-card-header">
+        <h3 class="dash-section-label">
+          <i class="bi bi-pie-chart-fill" style="color:var(--accent)"></i>
+          Sales Breakdown &amp; Trend
+        </h3>
+      </div>
+      <div class="biz-card-body"
+           style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;align-items:center">
+        <div>
+          <div style="font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+                      color:var(--ink-muted);margin-bottom:.6rem;text-align:center">
+            Breakdown
+          </div>
+          <canvas id="salesPieChart"></canvas>
+        </div>
+        <div>
+          <div style="font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+                      color:var(--ink-muted);margin-bottom:.6rem;text-align:center">
+            7-Day Trend
+          </div>
+          <canvas id="salesBarChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══════════════════════════════════════
+       UPCOMING EXPIRIES TABLE
+  ══════════════════════════════════════ -->
+  <div class="biz-card dash-full"
+       style="margin-bottom:1.25rem;animation:card-in .4s .24s var(--ease) both">
+    <div class="biz-card-header">
+      <h3 class="dash-section-label">
+        <i class="bi bi-calendar-x" style="color:var(--red)"></i> Upcoming Expiries
+      </h3>
+      <a href="{{ url_for('products') }}" class="biz-btn biz-btn-ghost biz-btn-sm">
+        View Inventory
+      </a>
+    </div>
+    <div class="biz-table-wrap">
+      <table class="biz-table">
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Stock</th>
+            <th>Expiry Date</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in upcoming_expiries %}
+          <tr>
+            <td style="font-weight:600;color:var(--ink)">{{ p.name }}</td>
+            <td>{{ p.quantity }}</td>
+            <td>{{ p.expiry_date.strftime('%d %b %Y') }}</td>
+            <td>
+              {% if p.expiry_date < today %}
+                <span class="exp-badge-danger">
+                  <i class="bi bi-x-circle-fill"></i> Expired
+                </span>
+              {% else %}
+                <span class="exp-badge-warn">
+                  <i class="bi bi-hourglass-split"></i> Urgent
+                </span>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="4">
+              <div class="biz-empty" style="padding:2.25rem">
+                <div class="biz-empty-icon"><i class="bi bi-calendar-check"></i></div>
+                <p class="biz-empty-title">No upcoming expiries</p>
+                <p class="biz-empty-sub">All products are within safe date ranges.</p>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       FAST MOVING PRODUCTS + ALL SALES RECORDS
+  ══════════════════════════════════════ -->
+  <div class="dash-main-grid">
+
+    <!-- Fast Moving Products -->
+    <div class="biz-card" style="animation:card-in .4s .3s var(--ease) both">
+      <div class="biz-card-header">
+        <h3 class="dash-section-label">
+          <i class="bi bi-lightning-charge-fill" style="color:var(--amber)"></i>
+          Fast Moving Products
+        </h3>
+        <span class="biz-badge biz-badge-amber">Top sellers</span>
+      </div>
+      <div class="biz-table-wrap">
+        <table class="biz-table">
+          <thead>
+            <tr><th>#</th><th>Product</th><th>Units Sold</th></tr>
+          </thead>
+          <tbody>
+            {% for item in fast_moving_products %}
+            <tr>
+              <td style="color:var(--ink-muted);font-size:.78rem;font-weight:600">
+                {{ loop.index }}
+              </td>
+              <td style="font-weight:600;color:var(--ink)">{{ item.product_name }}</td>
+              <td>
+                <div style="display:flex;align-items:center;gap:.5rem">
+                  <div class="fm-bar-wrap">
+                    <div class="fm-bar-fill"
+                         style="width:{{ [((item.total_sold / (fast_moving_products[0].total_sold if fast_moving_products else 1)) * 100)|int, 100]|min }}%">
+                    </div>
+                  </div>
+                  <span class="biz-badge biz-badge-green">{{ item.total_sold }}</span>
+                </div>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="3">
+                <div class="biz-empty" style="padding:2.25rem">
+                  <div class="biz-empty-icon"><i class="bi bi-bar-chart"></i></div>
+                  <p class="biz-empty-sub">No sales data yet.</p>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- All Sales Records -->
+    <div class="biz-card" style="animation:card-in .4s .36s var(--ease) both">
+      <div class="biz-card-header">
+        <h3 class="dash-section-label">
+          <i class="bi bi-clock-history" style="color:var(--blue)"></i>
+          All Sales Records
+        </h3>
+        {% if current_user.role.lower() == 'admin' %}
+        <form method="POST" action="{{ url_for('delete_all_sales') }}"
+              onsubmit="return confirm('CRITICAL WARNING: You are about to permanently erase ALL sales history. This cannot be undone. Are you absolutely sure?');">
+          <button type="submit" class="biz-btn biz-btn-danger biz-btn-sm">
+            <i class="bi bi-trash3"></i> Purge History
+          </button>
+        </form>
+        {% endif %}
+      </div>
+      <div class="biz-table-wrap" style="max-height:400px;overflow-y:auto">
+        <table class="biz-table">
+          <thead style="position:sticky;top:0;z-index:1">
+            <tr>
+              <th>#ID</th>
+              <th>Product</th>
+              <th style="text-align:center">Qty Sold</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for sale in sales %}
+            <tr>
+              <td style="font-family:'Courier New',monospace;font-size:.77rem;color:var(--ink-muted)">
+                #{{ sale.id }}
+              </td>
+              <td style="font-weight:600;color:var(--ink)">{{ sale.product_name }}</td>
+              <td style="text-align:center">
+                <span class="biz-badge biz-badge-gray">{{ sale.quantity_sold }}</span>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="3">
+                <div class="biz-empty" style="padding:2.25rem">
+                  <div class="biz-empty-icon"><i class="bi bi-receipt"></i></div>
+                  <p class="biz-empty-sub">Your sales ledger is currently empty.</p>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /dash-main-grid -->
+
+</div><!-- /page-wrap -->
+
+<!-- ══════════════════════════════════════
+     DRAGGABLE CALCULATOR
+══════════════════════════════════════ -->
+<div class="dash-calc" id="dashCalc">
+  <div class="calc-topbar" id="calcDragHandle">
+    <div class="calc-topbar-label">
+      <i class="bi bi-calculator-fill"></i> Calculator
+    </div>
+    <button class="calc-minimize-btn" id="calcMinimizeBtn" title="Minimise">
+      <i class="bi bi-dash-lg"></i>
+    </button>
+  </div>
+  <div class="calc-body">
+    <div class="calc-display">
+      <div class="calc-display-expr" id="calcExpr"></div>
+      <div class="calc-display-main" id="calcDisplay">0</div>
+    </div>
+    <div class="calc-grid" id="calcGrid"></div>
+  </div>
+</div>
+
+<!-- FAB — visible when calculator is minimised -->
+<button class="calc-fab" id="calcFab" title="Open Calculator" style="display:none">
+  <i class="bi bi-calculator-fill"></i>
+</button>
+
+<!-- ══════════════════════════════════════
+     ADD EXPENSE MODAL
+══════════════════════════════════════ -->
+<div class="modal fade biz-modal" id="addExpenseModal" tabindex="-1"
+     aria-labelledby="addExpenseModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="addExpenseModalLabel">
+          <i class="bi bi-wallet2 me-2" style="color:var(--red)"></i>
+          Record New Expense
+        </h5>
+        <button type="button" class="btn-close btn-close-white"
+                data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form action="{{ url_for('add_expense') }}" method="POST">
+        <div class="modal-body">
+
+          <div class="biz-form-group">
+            <label class="biz-label biz-label-required">Description</label>
+            <input type="text" name="description" class="biz-input"
+                   placeholder="e.g. Shop Rent, Electricity Bill" required>
+            <div class="biz-form-hint">What was this expense for?</div>
+          </div>
+
+          <div class="biz-form-row">
+            <div class="biz-form-group">
+              <label class="biz-label biz-label-required">Amount (Ksh)</label>
+              <div class="biz-input-group">
+                <span class="biz-input-addon">Ksh</span>
+                <input type="number" name="amount" class="biz-input"
+                       style="border-radius:0 var(--r-sm) var(--r-sm) 0;border-left:none"
+                       step="0.01" min="0" placeholder="0.00" required>
+              </div>
+            </div>
+            <div class="biz-form-group">
+              <label class="biz-label">Date</label>
+              <input type="date" name="date" class="biz-input" value="{{ today_date }}">
+            </div>
+          </div>
+
+          <div class="biz-form-group" style="margin-bottom:0">
+            <label class="biz-label">Category</label>
+            <select name="category" class="biz-input">
+              <option value="Operations">Operations</option>
+              <option value="Marketing">Marketing</option>
+              <option value="Salary">Salary</option>
+              <option value="Rent">Rent</option>
+              <option value="Utilities">Utilities</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="biz-btn biz-btn-ghost" data-bs-dismiss="modal">
+            Cancel
+          </button>
+          <button type="submit" class="biz-btn biz-btn-danger">
+            <i class="bi bi-check-circle-fill"></i> Save Expense
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+  /* ════════════════════════════════════════
+     CHARTS
+  ════════════════════════════════════════ */
+  var labels  = {{ sales_labels | tojson if sales_labels else '["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]' }};
+  var pieData = {{ sales_data   | tojson if sales_data   else '[10,20,30,40]' }};
+  var barData = {{ sales_trend  | tojson if sales_trend  else '[0,0,0,0,0,0,0]' }};
+  var palette = ['#10b981','#2563eb','#6366f1','#d97706','#dc2626','#0ea5e9'];
+
+  var pieCtx = document.getElementById('salesPieChart');
+  if (pieCtx) {
+    new Chart(pieCtx.getContext('2d'), {
+      type: 'doughnut',
+      data: {
+        labels: labels.slice(0, pieData.length),
+        datasets: [{
+          data: pieData,
+          backgroundColor: palette,
+          borderWidth: 3,
+          borderColor: '#ffffff',
+          hoverBorderWidth: 3
+        }]
+      },
+      options: {
+        responsive: true,
+        cutout: '62%',
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              font: { family: 'DM Sans', size: 11 },
+              color: '#6b7280', padding: 10,
+              boxWidth: 10, boxHeight: 10,
+              usePointStyle: true, pointStyle: 'circle'
+            }
+          }
+        }
+      }
+    });
+  }
+
+  var barCtx = document.getElementById('salesBarChart');
+  if (barCtx) {
+    new Chart(barCtx.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Revenue (Ksh)',
+          data: barData,
+          backgroundColor: 'rgba(16,185,129,0.15)',
+          borderColor: '#10b981',
+          borderWidth: 2,
+          borderRadius: 7,
+          borderSkipped: false
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { font: { family: 'DM Sans', size: 10 }, color: '#6b7280' }
+          },
+          y: {
+            grid: { color: '#f1f5f9' },
+            ticks: {
+              font: { family: 'DM Sans', size: 10 },
+              color: '#6b7280',
+              callback: function (v) {
+                return v >= 1000 ? 'K' + (v / 1000).toFixed(1) : v;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  /* ════════════════════════════════════════
+     BARCODE SCANNER
+  ════════════════════════════════════════ */
+  var videoEl  = document.getElementById('barcode-scanner');
+  var resultEl = document.getElementById('barcode-result');
+  if (videoEl && typeof ZXing !== 'undefined') {
+    var codeReader = new ZXing.BrowserMultiFormatReader();
+    codeReader.decodeFromVideoDevice(null, 'barcode-scanner', function (result, err) {
+      if (result) {
+        resultEl.value = result.text;
+        resultEl.style.borderColor = 'var(--green)';
+        resultEl.style.background  = 'var(--green-light)';
+        setTimeout(function () {
+          resultEl.style.borderColor = '';
+          resultEl.style.background  = '';
+        }, 1500);
+      }
+      if (err && !(err instanceof ZXing.NotFoundException)) {
+        console.warn('Scanner:', err);
+      }
+    });
+  }
+
+  /* ════════════════════════════════════════
+     CALCULATOR
+  ════════════════════════════════════════ */
+  var calcGrid    = document.getElementById('calcGrid');
+  var calcDisplay = document.getElementById('calcDisplay');
+  var calcExpr    = document.getElementById('calcExpr');
+  var calcEl      = document.getElementById('dashCalc');
+  var calcFab     = document.getElementById('calcFab');
+  var minimizeBtn = document.getElementById('calcMinimizeBtn');
+  var currentExpr = '';
+
+  var calcButtons = [
+    ['C',  'clear', 'c'],   ['⌫', 'back',  'back'], ['%',  'op',  '%'],  ['÷', 'op', '/'],
+    ['7',  'num',   '7'],   ['8',  'num',  '8'],     ['9',  'num', '9'],  ['×', 'op', '*'],
+    ['4',  'num',   '4'],   ['5',  'num',  '5'],     ['6',  'num', '6'],  ['−', 'op', '-'],
+    ['1',  'num',   '1'],   ['2',  'num',  '2'],     ['3',  'num', '3'],  ['+', 'op', '+'],
+    ['±',  'num',   'neg'], ['0',  'num',  '0'],     ['.',  'num', '.'],  ['=', 'eq', '='],
+  ];
+
+  function updateDisplay(val) { calcDisplay.textContent = val || '0'; }
+
+  if (calcGrid) {
+    calcButtons.forEach(function (def) {
+      var btn = document.createElement('button');
+      btn.textContent = def[0];
+      var cls = { clear: 'clear', back: 'back', eq: 'eq', op: 'op', num: 'num' };
+      btn.className = 'calc-btn calc-btn-' + (cls[def[1]] || 'num');
+      btn.addEventListener('click', function () {
+        var v = def[2];
+        if (v === 'c') {
+          currentExpr = ''; calcExpr.textContent = ''; updateDisplay('0');
+        } else if (v === 'back') {
+          currentExpr = currentExpr.slice(0, -1); updateDisplay(currentExpr || '0');
+        } else if (v === 'neg') {
+          if (currentExpr && !isNaN(parseFloat(currentExpr))) {
+            currentExpr = (parseFloat(currentExpr) * -1).toString();
+            updateDisplay(currentExpr);
+          }
+        } else if (v === '%') {
+          try {
+            currentExpr = (eval(currentExpr.replace(/[^-()\d/*+.]/g, '')) / 100).toString();
+            updateDisplay(currentExpr);
+          } catch (e) { updateDisplay('ERR'); }
+        } else if (v === '=') {
+          try {
+            calcExpr.textContent = currentExpr + ' =';
+            var result = eval(currentExpr.replace(/[^-()\d/*+.]/g, ''));
+            currentExpr = parseFloat(result.toFixed(10)).toString();
+            updateDisplay(currentExpr);
+          } catch (e) { updateDisplay('ERR'); currentExpr = ''; }
+        } else {
+          if (['+', '-', '*', '/'].includes(v) && currentExpr === '') return;
+          currentExpr += v; updateDisplay(currentExpr);
+        }
+      });
+      calcGrid.appendChild(btn);
+    });
+  }
+
+  /* Keyboard support (skips when an <input>/<textarea> is focused) */
+  document.addEventListener('keydown', function (e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
+    var key = e.key;
+    if (/^[\d+\-*/.%]$/.test(key)) {
+      currentExpr += key; updateDisplay(currentExpr);
+    } else if (key === 'Enter' || key === '=') {
+      try {
+        calcExpr.textContent = currentExpr + ' =';
+        var r = eval(currentExpr.replace(/[^-()\d/*+.]/g, ''));
+        currentExpr = parseFloat(r.toFixed(10)).toString(); updateDisplay(currentExpr);
+      } catch (e) { updateDisplay('ERR'); currentExpr = ''; }
+    } else if (key === 'Backspace') {
+      currentExpr = currentExpr.slice(0, -1); updateDisplay(currentExpr || '0');
+    } else if (key === 'Escape') {
+      currentExpr = ''; calcExpr.textContent = ''; updateDisplay('0');
+    }
+  });
+
+  /* Minimise / FAB toggle */
+  if (minimizeBtn && calcFab) {
+    minimizeBtn.addEventListener('click', function () {
+      calcEl.style.display = 'none';
+      calcFab.style.display = 'flex';
+    });
+    calcFab.addEventListener('click', function () {
+      calcEl.style.display = '';
+      calcFab.style.display = 'none';
+    });
+  }
+
+  /* Drag — mouse + touch */
+  var dragHandle = document.getElementById('calcDragHandle');
+  var isDragging = false, dragOffX = 0, dragOffY = 0;
+  if (dragHandle && calcEl) {
+    function startDrag(cx, cy) {
+      isDragging = true;
+      var r = calcEl.getBoundingClientRect();
+      calcEl.style.right = 'auto'; calcEl.style.bottom = 'auto';
+      calcEl.style.left  = r.left + 'px'; calcEl.style.top = r.top + 'px';
+      dragOffX = cx - r.left; dragOffY = cy - r.top;
+    }
+    function moveDrag(cx, cy) {
+      if (!isDragging) return;
+      calcEl.style.left = Math.min(Math.max(0, cx - dragOffX), window.innerWidth  - calcEl.offsetWidth)  + 'px';
+      calcEl.style.top  = Math.min(Math.max(0, cy - dragOffY), window.innerHeight - calcEl.offsetHeight) + 'px';
+    }
+    dragHandle.addEventListener('mousedown',  function (e) { startDrag(e.clientX, e.clientY); e.preventDefault(); });
+    document.addEventListener('mousemove',    function (e) { moveDrag(e.clientX, e.clientY); });
+    document.addEventListener('mouseup',      function ()  { isDragging = false; });
+    dragHandle.addEventListener('touchstart', function (e) {
+      var t = e.touches[0]; startDrag(t.clientX, t.clientY); e.preventDefault();
+    }, { passive: false });
+    document.addEventListener('touchmove', function (e) {
+      if (!isDragging) return;
+      var t = e.touches[0]; moveDrag(t.clientX, t.clientY); e.preventDefault();
+    }, { passive: false });
+    document.addEventListener('touchend', function () { isDragging = false; });
+  }
+
+  /* ════════════════════════════════════════
+     STAGGER ANIMATIONS
+  ════════════════════════════════════════ */
+  document.querySelectorAll('[data-stagger]').forEach(function (el, i) {
+    el.style.animationDelay = (i * 0.055) + 's';
+  });
+
+});
+</script>
+{% endblock %}

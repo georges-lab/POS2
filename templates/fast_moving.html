@@ -1,0 +1,48 @@
+<!-- templates/fast_moving.html -->
+{% extends "base.html" %}
+
+
+{% block title %}fast moving products | POS System{% endblock %}
+     
+    
+
+{% block content %}
+    
+<a href="{{ url_for('dashboard') }}" class="btn btn-secondary mb-3">back to dashboard</a>
+
+<body class="bg-light">
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Fast Moving Products</h2>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+    </div>
+
+    {% if fast_moving %}
+    <table class="table table-striped table-bordered shadow-sm bg-white">
+        <thead class="table-light">
+            <tr>
+                <th>#</th>
+                <th>Product</th>
+                <th>Units Sold</th>
+                <th>Last Sold</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in fast_moving %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ item.name }}</td>
+                <td>{{ item.total_sold }}</td>
+                <td>{{ item.last_sold.strftime('%Y-%m-%d %H:%M') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+        <div class="alert alert-warning">No sales data available.</div>
+    {% endif %}
+</div>
+
+{% endblock %}
+
