@@ -1,0 +1,247 @@
+{% extends 'base.html' %}
+
+{% block title %}LPO — {{ po.po_number }}{% endblock %}
+
+{% block head %}
+<style>
+/* ═══════════════════════════════════════════════════════════
+   LPO PRINT & PREVIEW LAYOUT SYSTEM
+═══════════════════════════════════════════════════════════ */
+
+.lpo-print-wrapper {
+    background: #ffffff;
+    color: #111111;
+    max-width: 850px;
+    margin: 1.5rem auto;
+    padding: 2.5rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+.lpo-header-grid {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 2px solid #111111;
+    padding-bottom: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.lpo-title-block h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #dc2626; /* Crimson Corporate Accent */
+    margin: 0;
+    letter-spacing: -0.03em;
+}
+
+.lpo-title-block sm {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6b7280;
+    font-weight: 600;
+}
+
+.lpo-meta-block {
+    text-align: right;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.lpo-parties-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-bottom: 2.5rem;
+    font-size: 0.92rem;
+}
+
+.lpo-party-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 1.25rem;
+}
+
+.lpo-party-card h3 {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #475569;
+    margin: 0 0 0.5rem 0;
+    border-bottom: 1px solid #cbd5e1;
+    padding-bottom: 0.25rem;
+}
+
+.lpo-items-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 2.5rem;
+    font-size: 0.9rem;
+}
+
+.lpo-items-table th {
+    background: #1e293b;
+    color: #ffffff;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    padding: 0.75rem 1rem;
+}
+
+.lpo-items-table td {
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid #e2e8f0;
+    color: #334155;
+}
+
+.lpo-items-table tr:last-of-type td {
+    border-bottom: 2px solid #1e293b;
+}
+
+.text-right { text-align: right; }
+.text-center { text-align: center; }
+
+.lpo-grand-total-row {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #111111;
+    background: #f1f5f9;
+}
+
+.lpo-notes-section {
+    background: #fffpt;
+    border-left: 4px solid #94a3b8;
+    padding: 0.75rem 1rem;
+    font-size: 0.88rem;
+    color: #475569;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CRITICAL HARDWARE PRINT ARCHITECTURE OVERRIDES
+═══════════════════════════════════════════════════════════ */
+@media print {
+    /* 1. Hide all application shell elements inherited from base.html */
+    nav, .navbar, .sidebar, .biz-sidebar, .no-print, .btn, button, footer, .main-header {
+        display: none !important;
+    }
+    
+    /* 2. Strip parent structural layout constraints */
+    body, .main-content, .content-wrapper, .container, .container-fluid {
+        background: #ffffff !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+        width: 100% !important;
+    }
+
+    /* 3. Optimize presentation container for paper margins */
+    .lpo-print-wrapper {
+        border: none !important;
+        box-shadow: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        max-width: 100% !important;
+    }
+
+    /* 4. Force color prints to render text properly without fading background greys */
+    .lpo-party-card {
+        background: transparent !important;
+        border: 1px solid #94a3b8 !important;
+    }
+    .lpo-items-table th {
+        background: #111111 !important;
+        color: #ffffff !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3 no-print">
+    <div class="d-flex justify-content-between align-items-center max-width:850px; margin:auto;">
+        <a href="{{ url_for('list_purchase_orders') }}" class="biz-btn biz-btn-ghost">
+            <i class="bi bi-arrow-left"></i> Back to Procurement
+        </a>
+        <button type="button" class="biz-btn biz-btn-danger" onclick="window.print()">
+            <i class="bi bi-printer-fill"></i> Trigger System Print (Ctrl + P)
+        </button>
+    </div>
+</div>
+
+<div class="lpo-print-wrapper">
+    <div class="lpo-header-grid">
+        <div class="lpo-title-block">
+            <h1>LOCAL PURCHASE ORDER</h1>
+            <small class="text-muted">BIZTOOL POS RETAIL MANAGEMENT SYSTEM</small>
+        </div>
+        <div class="lpo-meta-block">
+            <strong>LPO Number:</strong> {{ po.po_number }}<br>
+            <strong>Date Generated:</strong> {{ po.created_at.strftime('%d-%b-%Y %H:%M') }}<br>
+            <strong>Status Run:</strong> <span class="badge bg-dark">{{ po.status }}</span>
+        </div>
+    </div>
+
+    <div class="lpo-parties-grid">
+        <div class="lpo-party-card">
+            <h3>Vendor / Supplier</h3>
+            <strong>{{ supplier.name }}</strong><br>
+            {% if supplier.phone %}Phone: {{ supplier.phone }}<br>{% endif %}
+            {% if supplier.email %}Email: {{ supplier.email }}<br>{% endif %}
+            Kenya Business Registry Managed Partner
+        </div>
+        <div class="lpo-party-card">
+            <h3>Deliver Destination</h3>
+            <strong>BizTool Central Retail Depot</strong><br>
+            Receiving & Inventory Intake Unit<br>
+            Nairobi Counter Main Branch, Kenya<br>
+            Attn: Logistics Operations Manager
+        </div>
+    </div>
+
+    <table class="lpo-items-table">
+        <thead>
+            <tr>
+                <th>Product Description</th>
+                <th class="text-center" style="width: 120px;">Qty Ordered</th>
+                <th class="text-right" style="width: 150px;">Unit Price (KES)</th>
+                <th class="text-right" style="width: 180px;">Subtotal (KES)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in po.items %}
+            <tr>
+                <td><strong>{{ item.product.name }}</strong></td>
+                <td class="text-center">{{ item.quantity_ordered }}</td>
+                <td class="text-right">{{ "{:,.2f}".format(item.expected_cost) }}</td>
+                <td class="text-right">{{ "{:,.2f}".format(item.quantity_ordered * item.expected_cost) }}</td>
+            </tr>
+            {% endfor %}
+            <tr class="lpo-grand-total-row">
+                <td colspan="2"></td>
+                <td class="text-right">GRAND TOTAL:</td>
+                <td class="text-right">KES {{ "{:,.2f}".format(po.total_amount) }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    {% if po.notes %}
+    <div class="lpo-notes-section">
+        <strong>Procurement Terms & Logistics Notes:</strong><br>
+        {{ po.notes }}
+    </div>
+    {% endif %}
+    
+    <div class="mt-5 pt-4 border-top text-center text-muted" style="font-size: 0.75rem;">
+        <p>This document constitutes an official procurement intent validation form generated via BizTool POS.<br>
+        All variations regarding negotiated prices must be escalated before dispatching delivery vehicles.</p>
+    </div>
+</div>
+{% endblock %}

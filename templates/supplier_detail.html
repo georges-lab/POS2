@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+{% block title %}{{ supplier.name }} — Purchase History{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+    {# ── Breadcrumb ── #}
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('suppliers') }}">Suppliers</a></li>
+            <li class="breadcrumb-item active">{{ supplier.name }}</li>
+        </ol>
+    </nav>
+
+    {# ── Supplier Info Card ── #}
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h3 class="fw-bold mb-1">
+                        <i class="bi bi-building text-primary me-2"></i>{{ supplier.name }}
+                    </h3>
+                    {% if supplier.items_supplied %}
+                    <p class="text-muted mb-1">
+                        <i class="bi bi-box me-1"></i>{{ supplier.items_supplied }}
+                    </p>
+                    {% endif %}
+                    {% if supplier.phone %}
+                    <p class="text-muted mb-1">
+                        <i class="bi bi-telephone me-1"></i>{{ supplier.phone }}
+                    </p>
+                    {% endif %}
+                    {% if supplier.email %}
+                    <p class="text-muted mb-0">
+                        <i class="bi bi-envelope me-1"></i>{{ supplier.email }}
+                    </p>
+                    {% endif %}
+                    {% if supplier.address %}
+                    <p class="text-muted mb-0">
+                        <i class="bi bi-geo-alt me-1"></i>{{ supplier.address }}
+                    </p>
+                    {% endif %}
+                </div>
+                <div class="col-md-6 mt-3 mt-md-0">
+                    <div class="row g-3 text-center">
+                        <div class="col-4">
+                            <div class="bg-light rounded p-3">
+                                <div class="fw-bold fs-5 text-dark">{{ invoice_count }}</div>
+                                <small class="text-muted">Invoices</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="bg-light rounded p-3">
+                                <div class="fw-bold fs-6 text-dark">
+                                    KES {{ "{:,.0f}".format(total_spent) }}
+                                </div>
+                                <small class="text-muted">Total Purchased</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="rounded p-3 {% if total_owed > 0 %}bg-danger-subtle{% else %}bg-success-subtle{% endif %}">
+                                <div class="fw-bold fs-6 {% if total_owed > 0 %}text-danger{% else %}text-success{% endif %}">
+                                    KES {{ "{:,.0f}".format(total_owed) }}
+                                </div>
+                                <small class="text-muted">{% if total_owed > 0 %}Still Owed{% else %}All Paid{% endif %}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ── Purchase History Table ── #}
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white border-0 pt-3 pb-0 px-4 d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold mb-0">
+                <i class="bi bi-receipt me-2 text-muted"></i>Purchase History
+            </h5>
+            <a href="{{ url_for('suppliers') }}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i> Back
+            </a>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Invoice #</th>
+                        <th>Date</th>
+                        <th>Notes</th>
+                        <th>Items</th>
+                        <th class="text-end">Total</th>
+                        <th class="text-end">Paid</th>
+                        <th class="text-end">Balance</th>
+                        <th class="text-center">Status</th>
+                        {% if is_admin %}<th class="text-center">Action</th>{% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for inv in invoices %}
+                    <tr>
+                        <td class="text-muted small">#{{ inv.id }}</td>
+                        <td class="small">{{ inv.created_at.strftime('%d %b %Y') }}</td>
+                        <td><small class="text-muted">{{ inv.notes or '—' }}</small></td>
+                        <td>
+                            {# Inline items summary — expandable on click #}
+                            <button class="btn btn-sm btn-link p-0 text-decoration-none"
+                                    type="button"
+                                    data-bs-toggle="collapse"
+                                    data-bs-target="#items-{{ inv.id }}">
+                                {{ inv.items | length }} item(s)
+                                <i class="bi bi-chevron-down small"></i>
+                            </button>
+                            <div class="collapse mt-1" id="items-{{ inv.id }}">
+                                <ul class="list-unstyled small mb-0 text-muted">
+                                    {% for item in inv.items %}
+                                    <li>
+                                        {{ item.product.name if item.product else 'Unknown' }}
+                                        &times; {{ item.quantity }}
+                                        @ KES {{ "{:,.2f}".format(item.unit_cost) }}
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </td>
+                        <td class="text-end fw-bold">KES {{ "{:,.2f}".format(inv.total_amount) }}</td>
+                        <td class="text-end text-success">KES {{ "{:,.2f}".format(inv.amount_paid or 0) }}</td>
+                        <td class="text-end {% if inv.balance_due > 0 %}text-danger fw-bold{% else %}text-muted{% endif %}">
+                            KES {{ "{:,.2f}".format(inv.balance_due) }}
+                        </td>
+                        <td class="text-center">
+                            {% if inv.payment_status == 'Paid' %}
+                                <span class="badge bg-success">Paid</span>
+                            {% elif inv.payment_status == 'Partial' %}
+                                <span class="badge bg-warning text-dark">Partial</span>
+                            {% else %}
+                                <span class="badge bg-danger">Unpaid</span>
+                            {% endif %}
+                        </td>
+                        {% if is_admin %}
+                        <td class="text-center">
+                            {% if inv.payment_status != 'Paid' %}
+                            <button class="btn btn-sm btn-outline-success"
+                                    onclick="openPayModal({{ inv.id }}, {{ inv.balance_due }})">
+                                <i class="bi bi-cash-coin me-1"></i>Pay
+                            </button>
+                            {% else %}
+                                <span class="text-muted small">—</span>
+                            {% endif %}
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="9" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox display-4 d-block mb-3 opacity-25"></i>
+                            No purchases recorded for this supplier yet.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>{# /container #}
+
+
+{# ══════════════════════════════════════════════════════════════════════════ #}
+{#  PAY INVOICE MODAL                                                         #}
+{# ══════════════════════════════════════════════════════════════════════════ #}
+{% if is_admin %}
+<div class="modal fade" id="payInvoiceModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <form id="payInvoiceForm" method="POST" action="">
+                <div class="modal-header">
+                    <h6 class="modal-title">
+                        <i class="bi bi-cash-coin me-2"></i>Record Payment
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-3">
+                        Balance due: <strong id="payBalanceDue"></strong>
+                    </p>
+                    <label class="form-label fw-semibold">Amount Paid (KES)</label>
+                    <input type="number" name="amount_paid" id="payAmount"
+                           class="form-control" min="0.01" step="0.01" required>
+                    <div class="form-text">Enter the amount you are paying now.</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary btn-sm"
+                            data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success btn-sm">
+                        <i class="bi bi-check-lg me-1"></i> Confirm Payment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function openPayModal(invoiceId, balanceDue) {
+    document.getElementById('payBalanceDue').textContent = 'KES ' + balanceDue.toFixed(2);
+    document.getElementById('payAmount').value           = balanceDue.toFixed(2);
+    document.getElementById('payAmount').max             = balanceDue;
+    document.getElementById('payInvoiceForm').action     = '/supplier_invoice/' + invoiceId + '/pay';
+    new bootstrap.Modal(document.getElementById('payInvoiceModal')).show();
+}
+</script>
+{% endif %}
+{% endblock %}

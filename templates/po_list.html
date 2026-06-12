@@ -1,0 +1,600 @@
+{% extends 'base.html' %}
+
+{% block title %}Purchase Orders — Procurement{% endblock %}
+
+{% block head %}
+<style>
+/* ═══════════════════════════════════════════════════════════
+   PROCUREMENT / PO LIST PAGE
+═══════════════════════════════════════════════════════════ */
+
+.po-page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.po-page-header h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0;
+}
+
+.po-page-header small {
+    display: block;
+    font-size: 0.8rem;
+    color: #64748b;
+    margin-top: 0.2rem;
+}
+
+/* ── Stats strip ── */
+.po-stats-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.75rem;
+}
+
+.po-stat-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    text-align: center;
+}
+
+.po-stat-card .stat-value {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #1e293b;
+    line-height: 1;
+}
+
+.po-stat-card .stat-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+    margin-top: 0.3rem;
+}
+
+.po-stat-card.stat-red .stat-value   { color: #dc2626; }
+.po-stat-card.stat-amber .stat-value { color: #d97706; }
+.po-stat-card.stat-green .stat-value { color: #16a34a; }
+
+/* ── Create PO form card ── */
+.po-create-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.75rem;
+}
+
+.po-create-card h5 {
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #475569;
+    margin: 0 0 1.25rem 0;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+/* ── Item builder table ── */
+#item-builder {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+    margin-bottom: 0.75rem;
+}
+
+#item-builder th {
+    background: #1e293b;
+    color: #ffffff;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.6rem 0.75rem;
+    font-weight: 600;
+}
+
+#item-builder td {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+}
+
+#item-builder .item-row td { background: #fafafa; }
+#item-builder .item-row:hover td { background: #f1f5f9; }
+
+.item-subtotal { font-weight: 600; color: #1e293b; }
+
+/* ── Orders table ── */
+.po-table-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.po-table-card .card-header {
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 0.85rem 1.25rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #334155;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.po-orders-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+}
+
+.po-orders-table th {
+    background: #f1f5f9;
+    color: #475569;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.7rem 1rem;
+    font-weight: 600;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.po-orders-table td {
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155;
+    vertical-align: middle;
+}
+
+.po-orders-table tbody tr:hover td { background: #f8fafc; }
+.po-orders-table tbody tr:last-child td { border-bottom: none; }
+
+/* ── Status badges ── */
+.po-badge {
+    display: inline-block;
+    padding: 0.2rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.po-badge-draft     { background: #f1f5f9; color: #475569; }
+.po-badge-sent      { background: #dbeafe; color: #1d4ed8; }
+.po-badge-partial   { background: #fef3c7; color: #92400e; }
+.po-badge-received  { background: #dcfce7; color: #166534; }
+.po-badge-cancelled { background: #fee2e2; color: #991b1b; }
+
+/* ── Receive modal table ── */
+#receive-items-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+}
+
+#receive-items-table th {
+    background: #1e293b;
+    color: #fff;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+#receive-items-table td {
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid #e2e8f0;
+    vertical-align: middle;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+
+    <!-- Page Header -->
+    <div class="po-page-header">
+        <div>
+            <h2><i class="bi bi-file-earmark-text me-2" style="color:#dc2626;"></i>Purchase Orders</h2>
+            <small>Manage Local Purchase Orders (LPOs) and incoming stock deliveries</small>
+        </div>
+        <button class="biz-btn biz-btn-danger" data-bs-toggle="collapse" data-bs-target="#create-po-panel">
+            <i class="bi bi-plus-lg me-1"></i> New Purchase Order
+        </button>
+    </div>
+
+    <!-- Stats Strip -->
+    {% set total_orders = orders | length %}
+    {% set sent_orders = orders | selectattr('status', 'equalto', 'Sent') | list | length %}
+    {% set partial_orders = orders | selectattr('status', 'equalto', 'Partially Received') | list | length %}
+    {% set received_orders = orders | selectattr('status', 'equalto', 'Fully Received') | list | length %}
+
+    <div class="po-stats-strip">
+        <div class="po-stat-card">
+            <div class="stat-value">{{ total_orders }}</div>
+            <div class="stat-label">Total Orders</div>
+        </div>
+        <div class="po-stat-card stat-red">
+            <div class="stat-value">{{ sent_orders }}</div>
+            <div class="stat-label">Sent / Active</div>
+        </div>
+        <div class="po-stat-card stat-amber">
+            <div class="stat-value">{{ partial_orders }}</div>
+            <div class="stat-label">Partially Received</div>
+        </div>
+        <div class="po-stat-card stat-green">
+            <div class="stat-value">{{ received_orders }}</div>
+            <div class="stat-label">Fully Received</div>
+        </div>
+    </div>
+
+    <!-- Create PO Panel (collapsible) -->
+    <div class="collapse mb-3" id="create-po-panel">
+        <div class="po-create-card">
+            <h5><i class="bi bi-plus-circle me-1"></i> Create New Purchase Order</h5>
+            <form method="POST" action="{{ url_for('create_purchase_order') }}" id="create-po-form">
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-5">
+                        <label class="form-label fw-semibold" style="font-size:0.85rem;">Supplier</label>
+                        <select name="supplier_id" class="form-select form-select-sm" required>
+                            <option value="">— Select Supplier —</option>
+                            {% for s in suppliers %}
+                            <option value="{{ s.id }}">{{ s.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-7">
+                        <label class="form-label fw-semibold" style="font-size:0.85rem;">Procurement Notes (optional)</label>
+                        <input type="text" name="notes" class="form-control form-control-sm"
+                               placeholder="e.g. Delivery by Friday, partial payment agreed...">
+                    </div>
+                </div>
+
+                <!-- Item builder -->
+                <label class="form-label fw-semibold" style="font-size:0.85rem;">Order Items</label>
+                <table id="item-builder">
+                    <thead>
+                        <tr>
+                            <th style="width:40%;">Product</th>
+                            <th style="width:18%;">Qty Ordered</th>
+                            <th style="width:22%;">Unit Cost (KES)</th>
+                            <th style="width:15%;">Subtotal</th>
+                            <th style="width:5%;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="item-rows">
+                        <!-- rows injected by JS -->
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="5" style="padding-top:0.5rem;">
+                                <button type="button" class="biz-btn biz-btn-ghost btn-sm" id="add-item-btn">
+                                    <i class="bi bi-plus"></i> Add Item
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="3" class="text-end fw-bold" style="padding-top:0.5rem; font-size:0.9rem;">
+                                ORDER TOTAL (KES):
+                            </td>
+                            <td colspan="2" id="po-grand-total" class="fw-bold" style="color:#dc2626; font-size:1rem;">
+                                0.00
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+
+                <!-- Hidden field carries JSON items array -->
+                <input type="hidden" name="items" id="items-json">
+
+                <div class="d-flex gap-2 mt-3">
+                    <button type="submit" class="biz-btn biz-btn-danger" id="submit-po-btn" disabled>
+                        <i class="bi bi-send me-1"></i> Generate LPO
+                    </button>
+                    <button type="button" class="biz-btn biz-btn-ghost"
+                            data-bs-toggle="collapse" data-bs-target="#create-po-panel">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Orders Table -->
+    <div class="po-table-card">
+        <div class="card-header">
+            <i class="bi bi-list-ul me-1"></i> All Purchase Orders
+        </div>
+        {% if orders %}
+        <div class="table-responsive">
+            <table class="po-orders-table">
+                <thead>
+                    <tr>
+                        <th>LPO Number</th>
+                        <th>Supplier</th>
+                        <th>Items</th>
+                        <th>Total (KES)</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for po in orders %}
+                    {% set status_class = {
+                        'Draft': 'po-badge-draft',
+                        'Sent': 'po-badge-sent',
+                        'Partially Received': 'po-badge-partial',
+                        'Fully Received': 'po-badge-received',
+                        'Cancelled': 'po-badge-cancelled'
+                    }.get(po.status, 'po-badge-draft') %}
+                    <tr>
+                        <td><strong>{{ po.po_number }}</strong></td>
+                        <td>{{ po.supplier.name if po.supplier else '—' }}</td>
+                        <td>{{ po.items | length }} line(s)</td>
+                        <td>KES {{ "{:,.2f}".format(po.total_amount or 0) }}</td>
+                        <td><span class="po-badge {{ status_class }}">{{ po.status }}</span></td>
+                        <td>{{ po.created_at.strftime('%d %b %Y') }}</td>
+                        <td>
+                            <div class="d-flex gap-1 flex-wrap">
+                                <a href="{{ url_for('print_purchase_order', po_id=po.id) }}"
+                                   class="biz-btn biz-btn-ghost btn-sm" target="_blank" title="Print LPO">
+                                    <i class="bi bi-printer"></i>
+                                </a>
+                                {% if po.status not in ['Fully Received', 'Cancelled'] %}
+                                <button class="biz-btn biz-btn-danger btn-sm receive-btn"
+                                        data-po-id="{{ po.id }}"
+                                        data-po-number="{{ po.po_number }}"
+                                        data-items="{{ po.items | tojson | e }}"
+                                        title="Receive Delivery">
+                                    <i class="bi bi-box-arrow-in-down"></i> Receive
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-file-earmark-x" style="font-size:2.5rem; opacity:0.3;"></i>
+            <p class="mt-2 mb-0">No purchase orders yet.</p>
+            <small>Click <strong>New Purchase Order</strong> above to create your first LPO.</small>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- RECEIVE DELIVERY MODAL                                  -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="modal fade" id="receiveModal" tabindex="-1" aria-labelledby="receiveModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header" style="border-bottom:2px solid #dc2626;">
+                <h5 class="modal-title fw-bold" id="receiveModalLabel">
+                    <i class="bi bi-box-arrow-in-down me-2" style="color:#dc2626;"></i>
+                    Receive Delivery — <span id="receive-po-number"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" style="font-size:0.85rem;">
+                        Supplier Invoice / Delivery Note No. (optional)
+                    </label>
+                    <input type="text" id="invoice-no-input" class="form-control form-control-sm"
+                           placeholder="e.g. INV-2026-0042">
+                </div>
+                <table id="receive-items-table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th style="width:120px;">Ordered</th>
+                            <th style="width:120px;">Already In</th>
+                            <th style="width:140px;">Receiving Now</th>
+                        </tr>
+                    </thead>
+                    <tbody id="receive-items-body"></tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="biz-btn biz-btn-ghost" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="biz-btn biz-btn-danger" id="confirm-receive-btn">
+                    <i class="bi bi-check2-circle me-1"></i> Confirm Receipt & Update Stock
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ─────────────────────────────────────────────
+// ITEM BUILDER — Add / Remove / Total
+// ─────────────────────────────────────────────
+const products = {{ products | tojson }};
+const productMap = {};
+products.forEach(p => productMap[p.id] = p);
+
+function buildProductOptions(selectedId = '') {
+    let opts = '<option value="">— Select Product —</option>';
+    products.forEach(p => {
+        const sel = p.id == selectedId ? 'selected' : '';
+        opts += `<option value="${p.id}" data-cost="${p.buying_price || 0}" ${sel}>${p.name}</option>`;
+    });
+    return opts;
+}
+
+function recalcRow(row) {
+    const qty  = parseFloat(row.querySelector('.qty-input').value)  || 0;
+    const cost = parseFloat(row.querySelector('.cost-input').value) || 0;
+    row.querySelector('.item-subtotal').textContent = 'KES ' + (qty * cost).toLocaleString('en-KE', {minimumFractionDigits:2});
+}
+
+function recalcTotal() {
+    let total = 0;
+    document.querySelectorAll('.item-row').forEach(row => {
+        const qty  = parseFloat(row.querySelector('.qty-input').value)  || 0;
+        const cost = parseFloat(row.querySelector('.cost-input').value) || 0;
+        total += qty * cost;
+    });
+    document.getElementById('po-grand-total').textContent = total.toLocaleString('en-KE', {minimumFractionDigits:2});
+    document.getElementById('submit-po-btn').disabled = (document.querySelectorAll('.item-row').length === 0 || total === 0);
+}
+
+function addItemRow() {
+    const tbody = document.getElementById('item-rows');
+    const tr = document.createElement('tr');
+    tr.className = 'item-row';
+    tr.innerHTML = `
+        <td>
+            <select class="form-select form-select-sm product-select" required>
+                ${buildProductOptions()}
+            </select>
+        </td>
+        <td>
+            <input type="number" class="form-control form-control-sm qty-input" min="1" value="1" required>
+        </td>
+        <td>
+            <input type="number" class="form-control form-control-sm cost-input" min="0" step="0.01" value="0" required>
+        </td>
+        <td class="item-subtotal">KES 0.00</td>
+        <td>
+            <button type="button" class="btn btn-sm btn-link text-danger p-0 remove-row-btn" title="Remove">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </td>`;
+    tbody.appendChild(tr);
+
+    tr.querySelector('.product-select').addEventListener('change', function() {
+        const opt = this.options[this.selectedIndex];
+        const cost = opt.dataset.cost || 0;
+        tr.querySelector('.cost-input').value = parseFloat(cost).toFixed(2);
+        recalcRow(tr);
+        recalcTotal();
+    });
+
+    tr.querySelector('.qty-input').addEventListener('input', () => { recalcRow(tr); recalcTotal(); });
+    tr.querySelector('.cost-input').addEventListener('input', () => { recalcRow(tr); recalcTotal(); });
+    tr.querySelector('.remove-row-btn').addEventListener('click', () => { tr.remove(); recalcTotal(); });
+}
+
+document.getElementById('add-item-btn').addEventListener('click', addItemRow);
+
+// Serialize items to JSON before form submit
+document.getElementById('create-po-form').addEventListener('submit', function(e) {
+    const rows = document.querySelectorAll('.item-row');
+    const items = [];
+    let valid = true;
+    rows.forEach(row => {
+        const pid  = row.querySelector('.product-select').value;
+        const qty  = parseInt(row.querySelector('.qty-input').value);
+        const cost = parseFloat(row.querySelector('.cost-input').value);
+        if (!pid || qty <= 0 || cost <= 0) { valid = false; return; }
+        items.push({ product_id: pid, quantity: qty, cost: cost });
+    });
+    if (!valid || items.length === 0) {
+        e.preventDefault();
+        alert('Please add at least one valid item with product, quantity, and cost.');
+        return;
+    }
+    document.getElementById('items-json').value = JSON.stringify(items);
+});
+
+// ─────────────────────────────────────────────
+// RECEIVE DELIVERY MODAL
+// ─────────────────────────────────────────────
+let currentPoId = null;
+
+document.querySelectorAll('.receive-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        currentPoId = this.dataset.poId;
+        document.getElementById('receive-po-number').textContent = this.dataset.poNumber;
+        document.getElementById('invoice-no-input').value = '';
+
+        const items = JSON.parse(this.dataset.items);
+        const tbody = document.getElementById('receive-items-body');
+        tbody.innerHTML = '';
+
+        items.forEach(item => {
+            const outstanding = item.quantity_ordered - (item.quantity_received || 0);
+            if (outstanding <= 0) return;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${item.product ? item.product.name : 'Product #' + item.product_id}</td>
+                <td class="text-center">${item.quantity_ordered}</td>
+                <td class="text-center">${item.quantity_received || 0}</td>
+                <td>
+                    <input type="number" class="form-control form-control-sm receive-qty"
+                           data-item-id="${item.id}"
+                           min="0" max="${outstanding}" value="${outstanding}">
+                </td>`;
+            tbody.appendChild(tr);
+        });
+
+        if (tbody.children.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">All items already fully received.</td></tr>';
+        }
+
+        new bootstrap.Modal(document.getElementById('receiveModal')).show();
+    });
+});
+
+document.getElementById('confirm-receive-btn').addEventListener('click', async function() {
+    const invoiceNo = document.getElementById('invoice-no-input').value.trim();
+    const items = [];
+    document.querySelectorAll('.receive-qty').forEach(input => {
+        const qty = parseInt(input.value) || 0;
+        if (qty > 0) {
+            items.push({ item_id: parseInt(input.dataset.itemId), qty_received: qty });
+        }
+    });
+
+    if (items.length === 0) {
+        alert('Enter at least one quantity to receive.');
+        return;
+    }
+
+    this.disabled = true;
+    this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Processing...';
+
+    try {
+        const resp = await fetch(`/procurement/po/receive/${currentPoId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ items, invoice_no: invoiceNo || undefined })
+        });
+        const data = await resp.json();
+
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('receiveModal')).hide();
+            window.location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Unknown error'));
+        }
+    } catch(err) {
+        alert('Network error — please try again.');
+    } finally {
+        this.disabled = false;
+        this.innerHTML = '<i class="bi bi-check2-circle me-1"></i> Confirm Receipt & Update Stock';
+    }
+});
+</script>
+{% endblock %}

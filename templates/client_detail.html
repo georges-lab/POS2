@@ -1,0 +1,546 @@
+{% extends 'base.html' %}
+{% block title %}{{ client.name }} — BizTool POS{% endblock %}
+
+{% block head %}
+<style>
+/* ═══════════════════════════════════════════════════
+   CLIENT DETAIL PAGE  ·  White / Red / Black
+═══════════════════════════════════════════════════ */
+.cd-header {
+  background:linear-gradient(135deg,#0e0e0e 0%,#1a0000 100%);
+  border-radius:var(--r-lg); padding:1.75rem 2.25rem;
+  display:flex; align-items:center; justify-content:space-between;
+  gap:1.5rem; margin-bottom:1.25rem;
+  border:1.5px solid rgba(220,38,38,0.25);
+  position:relative; overflow:hidden;
+  animation:card-in .4s var(--ease) both;
+}
+.cd-header::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse 55% 80% at 0% 60%,rgba(220,38,38,0.14) 0%,transparent 60%); pointer-events:none; }
+.cd-header-left  { position:relative;z-index:1;display:flex;align-items:center;gap:1rem;flex:1;min-width:0; }
+.cd-header-right { position:relative;z-index:1;display:flex;gap:.55rem;flex-wrap:wrap; }
+.cd-avatar { width:52px;height:52px;border-radius:50%;background:#ef4444;display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:800;color:#fff;flex-shrink:0; }
+.cd-title  { font-family:var(--font-display);font-size:1.5rem;font-weight:800;color:#fff;letter-spacing:-0.03em;margin:0 0 .2rem; }
+.cd-sub    { font-size:.82rem;color:rgba(255,255,255,0.4);margin:0; }
+
+/* Summary stat grid */
+.cd-stats { display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:1rem;margin-bottom:1.25rem; }
+.cd-stat  {
+  background:#fff;border:1.5px solid #e8e8e8;border-radius:var(--r-lg);
+  padding:1.1rem 1.25rem;position:relative;overflow:hidden;
+  box-shadow:0 2px 8px rgba(0,0,0,0.05);
+  animation:card-in .4s var(--ease) both;
+}
+.cd-stat::before { content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--cd-accent,#ef4444); }
+.cd-stat-icon  { width:36px;height:36px;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;font-size:.95rem;margin-bottom:.3rem; }
+.cd-stat-label { font-size:.63rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#9ca3af; }
+.cd-stat-value { font-family:var(--font-display);font-size:1.35rem;font-weight:800;color:#111;letter-spacing:-0.025em;line-height:1.05; }
+.cd-stat-sub   { font-size:.72rem;color:#9ca3af;margin-top:.1rem; }
+
+/* Loyalty card */
+.cd-loyalty-card {
+  background:linear-gradient(135deg,#0f0a1e 0%,#1a0030 100%);
+  border:1.5px solid rgba(245,158,11,0.3);
+  border-radius:var(--r-lg); padding:1.5rem 1.75rem;
+  margin-bottom:1.25rem; position:relative; overflow:hidden;
+  animation:card-in .4s .06s var(--ease) both;
+}
+.cd-loyalty-card::before { content:'';position:absolute;top:-50px;right:-50px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(245,158,11,0.15) 0%,transparent 70%);pointer-events:none; }
+.cd-loyalty-inner { position:relative;z-index:1;display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap; }
+.cd-loyalty-left  {}
+.cd-loyalty-eyebrow { font-size:.63rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:rgba(251,191,36,0.7);display:flex;align-items:center;gap:.4rem;margin-bottom:.35rem; }
+.cd-loyalty-pts   { font-family:var(--font-display);font-size:2.2rem;font-weight:800;color:#fff;letter-spacing:-0.04em;line-height:1; }
+.cd-loyalty-sub   { font-size:.78rem;color:rgba(255,255,255,0.35);margin-top:.2rem; }
+.cd-loyalty-value { font-size:.82rem;color:#fbbf24;margin-top:.35rem;font-weight:600; }
+.cd-loyalty-right { display:flex;gap:.5rem;flex-wrap:wrap;align-items:flex-start; }
+.cd-lbtn {
+  display:inline-flex;align-items:center;gap:.38rem;
+  padding:.48rem 1rem;border-radius:var(--r-full);
+  font-size:.78rem;font-weight:700;text-decoration:none;
+  transition:all var(--t);white-space:nowrap;
+}
+.cd-lbtn-gold { background:rgba(245,158,11,0.2);border:1.5px solid rgba(245,158,11,0.45);color:#fbbf24; }
+.cd-lbtn-gold:hover { background:rgba(245,158,11,0.38);color:#fef3c7; }
+.cd-lbtn-red  { background:rgba(239,68,68,0.15);border:1.5px solid rgba(239,68,68,0.38);color:#fca5a5; }
+.cd-lbtn-red:hover  { background:rgba(239,68,68,0.3);color:#fee2e2; }
+
+/* Credit card */
+.cd-credit-card {
+  background:linear-gradient(135deg,#001a0a 0%,#002d14 100%);
+  border:1.5px solid rgba(16,185,129,0.28);
+  border-radius:var(--r-lg); padding:1.4rem 1.6rem;
+  margin-bottom:1.25rem; position:relative; overflow:hidden;
+  animation:card-in .4s .08s var(--ease) both;
+}
+.cd-credit-card::before { content:'';position:absolute;top:-40px;right:-40px;width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,rgba(16,185,129,0.12) 0%,transparent 70%);pointer-events:none; }
+.cd-credit-inner { position:relative;z-index:1;display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap; }
+.cd-credit-eyebrow { font-size:.63rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:rgba(52,211,153,0.7);display:flex;align-items:center;gap:.4rem;margin-bottom:.35rem; }
+.cd-credit-amount { font-family:var(--font-display);font-size:1.9rem;font-weight:800;color:#fff;letter-spacing:-0.04em;line-height:1; }
+.cd-credit-sub    { font-size:.78rem;color:rgba(255,255,255,0.35);margin-top:.2rem; }
+.cd-credit-row    { display:flex;gap:1rem;margin-top:.75rem;flex-wrap:wrap; }
+.cd-credit-kv     { display:flex;flex-direction:column;gap:.12rem; }
+.cd-credit-kv-label { font-size:.62rem;color:rgba(255,255,255,0.3);font-weight:700;text-transform:uppercase;letter-spacing:.08em; }
+.cd-credit-kv-value { font-size:.88rem;font-weight:700;color:#e0e0e0; }
+
+/* Section cards */
+.cd-section { background:#fff;border:1.5px solid #e8e8e8;border-radius:var(--r-lg);box-shadow:0 2px 8px rgba(0,0,0,0.04);overflow:hidden;margin-bottom:1.25rem;animation:card-in .4s .1s var(--ease) both; }
+.cd-section-header { display:flex;align-items:center;justify-content:space-between;padding:1.1rem 1.4rem;border-bottom:1.5px solid #f1f5f9;flex-wrap:wrap;gap:.5rem; }
+.cd-section-title  { font-family:var(--font-display);font-size:.95rem;font-weight:700;color:#111;display:flex;align-items:center;gap:.45rem; }
+.cd-section-title i { color:#ef4444; }
+
+/* Tables */
+.cd-table { width:100%;border-collapse:collapse;font-size:.84rem; }
+.cd-table thead th { background:#f8fafc;color:#6b7280;font-size:.67rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.6rem 1rem;text-align:left;border-bottom:1.5px solid #e2e8f0; }
+.cd-table tbody td { padding:.75rem 1rem;border-bottom:1px solid #f1f5f9;color:#374151;vertical-align:middle; }
+.cd-table tbody tr:last-child td { border-bottom:none; }
+.cd-table tbody tr:hover td { background:#fafafa; }
+
+/* Badges */
+.cd-badge { display:inline-block;padding:.2rem .65rem;border-radius:99px;font-size:.7rem;font-weight:700; }
+.cd-badge-green  { background:rgba(16,185,129,0.1);color:#059669; }
+.cd-badge-red    { background:rgba(239,68,68,0.1);color:#dc2626; }
+.cd-badge-gold   { background:rgba(245,158,11,0.12);color:#d97706; }
+.cd-badge-gray   { background:#f1f5f9;color:#6b7280; }
+.cd-badge-blue   { background:rgba(59,130,246,0.1);color:#1d4ed8; }
+
+/* Progress bar for credit usage */
+.cd-credit-bar-wrap { width:100%;height:7px;background:rgba(255,255,255,0.1);border-radius:99px;overflow:hidden;margin-top:.5rem; }
+.cd-credit-bar-fill { height:100%;border-radius:99px;background:#ef4444; }
+
+/* Modal */
+.biz-modal .modal-content { background:#fff;border:none;border-radius:var(--r-lg);box-shadow:0 24px 64px rgba(0,0,0,0.15); }
+.biz-modal .modal-header  { background:#0a0a0a;border-bottom:2px solid #ef4444;padding:1.1rem 1.4rem; }
+.biz-modal .modal-title   { font-family:var(--font-display);font-weight:700;font-size:1rem;color:#fff; }
+.biz-modal .modal-body    { padding:1.4rem; }
+.biz-modal .modal-footer  { padding:1rem 1.4rem;border-top:1px solid #f1f5f9;gap:.5rem; }
+.biz-form-label { font-size:.78rem;font-weight:700;color:#374151;display:block;margin-bottom:.3rem; }
+.biz-form-label .req { color:#ef4444; }
+.biz-form-input { width:100%;padding:.48rem .9rem;border:1.5px solid #e2e8f0;border-radius:var(--r-sm);font-size:.84rem;color:#111;background:#f8fafc;outline:none;transition:border-color var(--t);font-family:var(--font-body); }
+.biz-form-input:focus { border-color:#ef4444;background:#fff; }
+.biz-form-row   { display:grid;grid-template-columns:1fr 1fr;gap:.75rem; }
+.biz-form-group { margin-bottom:.9rem; }
+@media(max-width:520px){ .biz-form-row{grid-template-columns:1fr;} }
+
+@media(max-width:700px){
+  .cd-stats { grid-template-columns:1fr 1fr; }
+}
+</style>
+{% endblock %}
+
+
+{% block content %}
+<div class="container-fluid px-3 py-3" style="max-width:1100px;margin:auto">
+
+  <!-- PAGE HEADER -->
+  <div class="cd-header">
+    <div class="cd-header-left">
+      <div class="cd-avatar">{{ client.name[0] | upper }}</div>
+      <div>
+        <h1 class="cd-title">{{ client.name }}</h1>
+        <p class="cd-sub">
+          {% if client.phone %}<i class="bi bi-telephone" style="font-size:.75rem"></i> {{ client.phone }}{% endif %}
+          {% if client.email %}&nbsp;·&nbsp; <i class="bi bi-envelope" style="font-size:.75rem"></i> {{ client.email }}{% endif %}
+          &nbsp;·&nbsp; Client since {{ client.created_at.strftime('%b %Y') }}
+        </p>
+      </div>
+    </div>
+    <div class="cd-header-right">
+      <button class="biz-btn biz-btn-danger biz-btn-sm"
+              data-bs-toggle="modal" data-bs-target="#editClientModal">
+        <i class="bi bi-pencil-fill"></i> Edit
+      </button>
+      <a href="{{ url_for('clients') }}" class="biz-btn biz-btn-ghost biz-btn-sm"
+         style="border-color:rgba(255,255,255,0.18);color:rgba(255,255,255,0.8)">
+        <i class="bi bi-arrow-left"></i> All Clients
+      </a>
+    </div>
+  </div>
+
+  <!-- SUMMARY STATS -->
+  <div class="cd-stats">
+    <div class="cd-stat" style="--cd-accent:#ef4444">
+      <div class="cd-stat-icon" style="background:rgba(239,68,68,0.1);color:#ef4444"><i class="bi bi-receipt-cutoff"></i></div>
+      <div class="cd-stat-label">Total Purchases</div>
+      <div class="cd-stat-value">{{ total_purchases }}</div>
+    </div>
+    <div class="cd-stat" style="--cd-accent:#10b981">
+      <div class="cd-stat-icon" style="background:rgba(16,185,129,0.1);color:#10b981"><i class="bi bi-cash-stack"></i></div>
+      <div class="cd-stat-label">Total Spent</div>
+      <div class="cd-stat-value" style="color:#10b981;font-size:1.1rem">KES {{ "{:,.0f}".format(client.total_spent or 0) }}</div>
+    </div>
+    <div class="cd-stat" style="--cd-accent:#f59e0b">
+      <div class="cd-stat-icon" style="background:rgba(245,158,11,0.1);color:#f59e0b"><i class="bi bi-star-fill"></i></div>
+      <div class="cd-stat-label">Loyalty Points</div>
+      <div class="cd-stat-value" style="color:#d97706">{{ "{:,}".format(client.loyalty_points or 0) }}</div>
+      <div class="cd-stat-sub">Worth KES {{ "{:,.2f}".format(points_value) }}</div>
+    </div>
+    <div class="cd-stat" style="--cd-accent:#8b5cf6">
+      <div class="cd-stat-icon" style="background:rgba(139,92,246,0.1);color:#8b5cf6"><i class="bi bi-arrow-up-circle-fill"></i></div>
+      <div class="cd-stat-label">Points Earned</div>
+      <div class="cd-stat-value" style="color:#8b5cf6">{{ "{:,}".format(points_earned) }}</div>
+    </div>
+    {% if client.credit_enabled %}
+    <div class="cd-stat" style="--cd-accent:{{ '#ef4444' if client.credit_balance and client.credit_balance > 0 else '#10b981' }}">
+      <div class="cd-stat-icon" style="background:rgba({% if client.credit_balance and client.credit_balance > 0 %}239,68,68{% else %}16,185,129{% endif %},0.1);color:{{ '#ef4444' if client.credit_balance and client.credit_balance > 0 else '#10b981' }}">
+        <i class="bi bi-wallet2"></i>
+      </div>
+      <div class="cd-stat-label">Credit Balance Due</div>
+      <div class="cd-stat-value" style="color:{{ '#ef4444' if client.credit_balance and client.credit_balance > 0 else '#10b981' }};font-size:1.1rem">
+        {% if client.credit_balance and client.credit_balance > 0 %}
+          KES {{ "{:,.2f}".format(client.credit_balance) }}
+        {% else %}
+          Clear
+        {% endif %}
+      </div>
+      <div class="cd-stat-sub">Limit: KES {{ "{:,.0f}".format(client.credit_limit or 0) }}</div>
+    </div>
+    {% endif %}
+  </div>
+
+
+  <!-- LOYALTY WIDGET -->
+  <div class="cd-loyalty-card">
+    <div class="cd-loyalty-inner">
+      <div>
+        <div class="cd-loyalty-eyebrow"><i class="bi bi-star-fill"></i> Loyalty Programme</div>
+        <div class="cd-loyalty-pts">{{ "{:,}".format(client.loyalty_points or 0) }} <span style="font-size:1rem;opacity:.6">pts</span></div>
+        <div class="cd-loyalty-sub">{{ "{:,}".format(points_earned) }} earned &nbsp;·&nbsp; {{ "{:,}".format(points_redeemed) }} redeemed</div>
+        <div class="cd-loyalty-value">
+          Redeemable value: <strong>KES {{ "{:,.2f}".format(points_value) }}</strong>
+          {% if (client.loyalty_points or 0) < min_redemption %}
+            &nbsp;·&nbsp; <span style="opacity:.6">{{ min_redemption - (client.loyalty_points or 0) }} more pts needed to redeem</span>
+          {% endif %}
+        </div>
+      </div>
+      {% if can_view_reports %}
+      <div class="cd-loyalty-right">
+        <button class="cd-lbtn cd-lbtn-gold"
+                data-bs-toggle="modal" data-bs-target="#adjustPointsModal">
+          <i class="bi bi-plus-slash-minus"></i> Adjust Points
+        </button>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+
+  <!-- CREDIT ACCOUNT WIDGET (shown only if enabled) -->
+  {% if client.credit_enabled %}
+  <div class="cd-credit-card">
+    <div class="cd-credit-inner">
+      <div>
+        <div class="cd-credit-eyebrow"><i class="bi bi-credit-card-fill"></i> Credit Account</div>
+        <div class="cd-credit-amount"
+             style="color:{% if client.credit_balance and client.credit_balance > 0 %}#f87171{% else %}#34d399{% endif %}">
+          KES {{ "{:,.2f}".format(client.credit_balance or 0) }}
+        </div>
+        <div class="cd-credit-sub">
+          {% if client.credit_balance and client.credit_balance > 0 %}Outstanding balance{% else %}No outstanding balance{% endif %}
+        </div>
+        <div class="cd-credit-row">
+          <div class="cd-credit-kv">
+            <div class="cd-credit-kv-label">Credit Limit</div>
+            <div class="cd-credit-kv-value">KES {{ "{:,.2f}".format(client.credit_limit or 0) }}</div>
+          </div>
+          <div class="cd-credit-kv">
+            <div class="cd-credit-kv-label">Available</div>
+            <div class="cd-credit-kv-value" style="color:#34d399">KES {{ "{:,.2f}".format(client.available_credit) }}</div>
+          </div>
+          <div class="cd-credit-kv">
+            <div class="cd-credit-kv-label">Utilisation</div>
+            <div class="cd-credit-kv-value">
+              {{ ((client.credit_balance / client.credit_limit * 100) | round(1) if client.credit_limit and client.credit_limit > 0 else 0) }}%
+            </div>
+          </div>
+        </div>
+        {% if client.credit_limit and client.credit_limit > 0 %}
+        <div class="cd-credit-bar-wrap" style="max-width:260px;margin-top:.75rem">
+          <div class="cd-credit-bar-fill"
+               style="width:{{ [((client.credit_balance or 0) / client.credit_limit * 100) | round(0) | int, 100] | min }}%;
+                      background:{% if (client.credit_balance or 0) / client.credit_limit > 0.8 %}#ef4444{% elif (client.credit_balance or 0) / client.credit_limit > 0.5 %}#f59e0b{% else %}#10b981{% endif %}">
+          </div>
+        </div>
+        {% endif %}
+      </div>
+      {% if client.credit_balance and client.credit_balance > 0 and can_view_reports %}
+      <div>
+        <button class="cd-lbtn cd-lbtn-red"
+                data-bs-toggle="modal" data-bs-target="#payCreditModal">
+          <i class="bi bi-cash-coin"></i> Record Payment
+        </button>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+
+  <!-- PURCHASE HISTORY -->
+  <div class="cd-section">
+    <div class="cd-section-header">
+      <div class="cd-section-title"><i class="bi bi-receipt"></i> Purchase History</div>
+      <span style="font-size:.78rem;color:#9ca3af">{{ receipts | length }} receipt(s)</span>
+    </div>
+    <div style="overflow-x:auto;max-height:380px;overflow-y:auto">
+      <table class="cd-table">
+        <thead style="position:sticky;top:0;z-index:1">
+          <tr>
+            <th>Receipt #</th>
+            <th>Date</th>
+            <th style="text-align:right">Amount (KES)</th>
+            <th style="text-align:right">Paid</th>
+            <th>Status</th>
+            <th>Pts Earned</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in receipts %}
+          {% set pts_txn = loyalty_txns | selectattr('reference_id', 'equalto', r.id) | selectattr('points', 'gt', 0) | list %}
+          <tr>
+            <td style="font-family:'Courier New',monospace;font-size:.75rem;color:#9ca3af">#{{ r.id }}</td>
+            <td style="color:#6b7280;font-size:.8rem;white-space:nowrap">{{ r.timestamp.strftime('%d %b %Y  %H:%M') }}</td>
+            <td style="text-align:right;font-weight:700;color:#111">{{ "{:,.2f}".format(r.total_amount or 0) }}</td>
+            <td style="text-align:right;color:#10b981">{{ "{:,.2f}".format(r.amount_paid or 0) }}</td>
+            <td>
+              {% if r.status == 'Paid' %}
+                <span class="cd-badge cd-badge-green">Paid</span>
+              {% elif r.status == 'Partially Paid' %}
+                <span class="cd-badge" style="background:rgba(245,158,11,0.1);color:#d97706">Partial</span>
+              {% elif r.status == 'Cancelled' %}
+                <span class="cd-badge cd-badge-gray">Cancelled</span>
+              {% else %}
+                <span class="cd-badge cd-badge-red">Open</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if pts_txn %}
+                <span class="cd-badge cd-badge-gold"><i class="bi bi-star-fill" style="font-size:.55rem"></i> +{{ pts_txn[0].points }}</span>
+              {% else %}—{% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" style="text-align:center;padding:2.5rem;color:#9ca3af">
+              <i class="bi bi-receipt" style="font-size:1.8rem;display:block;margin-bottom:.5rem;opacity:.3;color:#ef4444"></i>
+              No purchases yet.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+
+  <!-- LOYALTY TRANSACTION HISTORY -->
+  <div class="cd-section">
+    <div class="cd-section-header">
+      <div class="cd-section-title"><i class="bi bi-star-half"></i> Loyalty History</div>
+      <span style="font-size:.78rem;color:#9ca3af">{{ loyalty_txns | length }} transaction(s)</span>
+    </div>
+    <div style="overflow-x:auto;max-height:320px;overflow-y:auto">
+      <table class="cd-table">
+        <thead style="position:sticky;top:0;z-index:1">
+          <tr>
+            <th>Date</th>
+            <th>Reason</th>
+            <th style="text-align:right">Points</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in loyalty_txns %}
+          <tr>
+            <td style="color:#6b7280;font-size:.8rem;white-space:nowrap">{{ t.created_at.strftime('%d %b %Y  %H:%M') }}</td>
+            <td style="color:#374151">{{ t.reason or '—' }}</td>
+            <td style="text-align:right">
+              {% if t.points > 0 %}
+                <span class="cd-badge cd-badge-gold">+{{ t.points }}</span>
+              {% else %}
+                <span class="cd-badge cd-badge-red">{{ t.points }}</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="3" style="text-align:center;padding:2rem;color:#9ca3af">No loyalty transactions yet.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+
+  <!-- CREDIT PAYMENT HISTORY -->
+  {% if client.credit_enabled %}
+  <div class="cd-section">
+    <div class="cd-section-header">
+      <div class="cd-section-title"><i class="bi bi-cash-coin"></i> Credit Payments</div>
+      <span style="font-size:.78rem;color:#9ca3af">{{ credit_payments | length }} payment(s)</span>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="cd-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Method</th>
+            <th>Reference</th>
+            <th>Recorded By</th>
+            <th style="text-align:right">Amount (KES)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cp in credit_payments %}
+          <tr>
+            <td style="color:#6b7280;font-size:.8rem;white-space:nowrap">{{ cp.created_at.strftime('%d %b %Y  %H:%M') }}</td>
+            <td><span class="cd-badge {% if cp.method == 'Mpesa' %}cd-badge-blue{% else %}cd-badge-green{% endif %}">{{ cp.method }}</span></td>
+            <td style="color:#6b7280;font-size:.8rem">{{ cp.reference or '—' }}</td>
+            <td style="color:#6b7280;font-size:.8rem">{{ cp.recorder.full_name or cp.recorder.username if cp.recorder else '—' }}</td>
+            <td style="text-align:right;font-weight:700;color:#10b981">{{ "{:,.2f}".format(cp.amount) }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="5" style="text-align:center;padding:2rem;color:#9ca3af">No credit payments recorded yet.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+</div><!-- /container -->
+
+
+<!-- EDIT CLIENT MODAL -->
+<div class="modal fade biz-modal" id="editClientModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-pencil-fill me-2" style="color:#ef4444"></i>Edit Client</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="{{ url_for('edit_client', client_id=client.id) }}">
+        <div class="modal-body">
+          <div class="biz-form-group">
+            <label class="biz-form-label">Full Name <span class="req">*</span></label>
+            <input type="text" name="name" class="biz-form-input" value="{{ client.name }}" required>
+          </div>
+          <div class="biz-form-row">
+            <div class="biz-form-group">
+              <label class="biz-form-label">Phone</label>
+              <input type="text" name="phone" class="biz-form-input" value="{{ client.phone or '' }}">
+            </div>
+            <div class="biz-form-group">
+              <label class="biz-form-label">Email</label>
+              <input type="email" name="email" class="biz-form-input" value="{{ client.email or '' }}">
+            </div>
+          </div>
+          <div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:var(--r-sm);padding:1rem">
+            <div style="font-size:.78rem;font-weight:700;color:#374151;margin-bottom:.65rem">
+              <i class="bi bi-credit-card" style="color:#3b82f6;margin-right:.3rem"></i>Credit Account
+            </div>
+            <div style="display:flex;align-items:center;gap:.65rem;margin-bottom:.65rem">
+              <input type="checkbox" name="credit_enabled" value="1" id="editCreditEnabled"
+                     {{ 'checked' if client.credit_enabled else '' }}
+                     onchange="document.getElementById('editCreditLimitWrap').style.display=this.checked?'block':'none'">
+              <label for="editCreditEnabled" style="font-size:.84rem;color:#374151;cursor:pointer;margin:0">Credit account enabled</label>
+            </div>
+            <div id="editCreditLimitWrap" style="display:{{ 'block' if client.credit_enabled else 'none' }}">
+              <label class="biz-form-label">Credit Limit (KES)</label>
+              <input type="number" name="credit_limit" class="biz-form-input"
+                     value="{{ client.credit_limit or 0 }}" min="0" step="0.01">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="biz-btn biz-btn-ghost" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="biz-btn biz-btn-danger"><i class="bi bi-check-circle-fill"></i> Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<!-- RECORD CREDIT PAYMENT MODAL -->
+{% if client.credit_enabled and client.credit_balance and client.credit_balance > 0 %}
+<div class="modal fade biz-modal" id="payCreditModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-cash-coin me-2" style="color:#10b981"></i>Record Credit Payment</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="{{ url_for('client_pay_credit', client_id=client.id) }}">
+        <div class="modal-body">
+          <p style="font-size:.83rem;color:#6b7280;margin-bottom:.85rem">
+            Outstanding balance: <strong style="color:#ef4444">KES {{ "{:,.2f}".format(client.credit_balance) }}</strong>
+          </p>
+          <div class="biz-form-group">
+            <label class="biz-form-label">Amount (KES) <span class="req">*</span></label>
+            <input type="number" name="amount" class="biz-form-input"
+                   value="{{ client.credit_balance }}" max="{{ client.credit_balance }}"
+                   min="0.01" step="0.01" required>
+          </div>
+          <div class="biz-form-row">
+            <div class="biz-form-group" style="margin-bottom:0">
+              <label class="biz-form-label">Method</label>
+              <select name="method" class="biz-form-input">
+                <option value="Cash">Cash</option>
+                <option value="Mpesa">M-Pesa</option>
+                <option value="Bank">Bank Transfer</option>
+              </select>
+            </div>
+            <div class="biz-form-group" style="margin-bottom:0">
+              <label class="biz-form-label">Reference</label>
+              <input type="text" name="reference" class="biz-form-input" placeholder="e.g. Mpesa ref…">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="biz-btn biz-btn-ghost" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="biz-btn biz-btn-danger"><i class="bi bi-check-circle-fill"></i> Confirm Payment</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+
+<!-- ADJUST LOYALTY POINTS MODAL -->
+{% if can_view_reports %}
+<div class="modal fade biz-modal" id="adjustPointsModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-plus-slash-minus me-2" style="color:#f59e0b"></i>Adjust Loyalty Points</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="{{ url_for('adjust_loyalty_points', client_id=client.id) }}">
+        <div class="modal-body">
+          <p style="font-size:.83rem;color:#6b7280;margin-bottom:.85rem">
+            Current balance: <strong style="color:#d97706">{{ "{:,}".format(client.loyalty_points or 0) }} points</strong>
+          </p>
+          <div class="biz-form-group">
+            <label class="biz-form-label">Points <span class="req">*</span></label>
+            <input type="number" name="points" class="biz-form-input"
+                   placeholder="Use negative to deduct e.g. -50" required>
+            <div style="font-size:.74rem;color:#9ca3af;margin-top:.3rem">Positive = add · Negative = deduct</div>
+          </div>
+          <div class="biz-form-group" style="margin-bottom:0">
+            <label class="biz-form-label">Reason <span class="req">*</span></label>
+            <input type="text" name="reason" class="biz-form-input"
+                   placeholder="e.g. Birthday bonus, correction…" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="biz-btn biz-btn-ghost" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="biz-btn biz-btn-danger"><i class="bi bi-check-circle-fill"></i> Apply Adjustment</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -7,8 +7,6 @@
    CART PAGE STYLES — matches base/dashboard design system
 ════════════════════════════════════════ */
 
-/* ── Page wrapper uses shared page-wrap from base ── */
-
 /* ── Two-column layout ── */
 .cart-layout {
   display: grid;
@@ -280,6 +278,77 @@
 }
 .finalize-btn i { font-size: 1.05rem; }
 
+/* ── M-Pesa Button Custom Layout Style ── */
+.mpesa-btn {
+  width: 100%;
+  padding: 0.9rem;
+  border-radius: var(--r-md);
+  border: 1.5px solid rgba(16,185,129,0.4);
+  background: #10b981;
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--t);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+.mpesa-btn:hover {
+  background: #059669;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(16,185,129,0.3);
+}
+
+/* ── Asynchronous Native Webview Overlay ── */
+.native-modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 1rem;
+}
+.native-modal {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-lg);
+  width: 100%;
+  max-width: 440px;
+  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+  overflow: hidden;
+}
+.native-modal-header {
+  padding: 1.25rem 1.5rem;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.native-modal-title {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+}
+.native-modal-close {
+  background: transparent;
+  border: none;
+  color: var(--ink-muted);
+  font-size: 1.4rem;
+  cursor: pointer;
+  line-height: 1;
+}
+.native-modal-body { padding: 1.5rem; }
+
 /* ── Empty cart ── */
 .cart-empty {
   grid-column: 1 / -1;
@@ -291,6 +360,8 @@
   text-align: center;
 }
 
+@keyframes native-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
 /* ── Responsive ── */
 @media (max-width: 1024px) { .cart-layout { grid-template-columns: 1fr; } .cart-summary { position: static; } }
 @media (max-width: 640px)  { .cart-layout { gap: 1rem; } }
@@ -300,7 +371,20 @@
 {% block content %}
 <div class="page-wrap">
 
-  <!-- ══ PAGE HEADER ══ -->
+  <div id="mpesa-flash-banner" style="display:none; align-items:center; gap:1rem;
+    background:#fef2f2; border:1.5px solid #fca5a5; border-radius:var(--r-md);
+    padding:1rem 1.25rem; margin-bottom:1.25rem; animation:card-in .3s var(--ease) both;">
+    <div style="font-size:1.6rem; flex-shrink:0;">⚠️</div>
+    <div style="flex:1;">
+      <div style="font-family:var(--font-display); font-weight:700; color:#b91c1c; font-size:0.95rem;">
+        M-Pesa Transaction Failed
+      </div>
+      <div id="mpesa-flash-message" style="color:#dc2626; font-size:0.85rem; font-weight:600; margin-top:0.15rem;"></div>
+    </div>
+    <button type="button" onclick="document.getElementById('mpesa-flash-banner').style.display='none'"
+      style="background:transparent; border:none; color:#b91c1c; font-size:1.3rem; cursor:pointer; line-height:1; flex-shrink:0;">✕</button>
+  </div>
+
   <div class="page-header">
     <div>
       <div class="page-eyebrow"><span class="page-eyebrow-dot"></span> Point of Sale</div>
@@ -315,207 +399,137 @@
   </div>
 
   {% if cart_items %}
-
-  <!-- ══════════════════════════════════════
-       CHECKOUT FORM
-       The <form> wraps ONLY the table + summary.
-       All edit/delete links are plain <a> tags —
-       no nested forms, no conflicts.
-  ══════════════════════════════════════ -->
   <form action="{{ url_for('checkout') }}" method="POST" id="checkout-form">
-  <div class="cart-layout">
-
-    <!-- ── LEFT: Items table ── -->
-    <div class="biz-card" style="overflow:hidden;animation:card-in .4s var(--ease) both">
-      <div class="biz-card-header">
-        <h3 class="biz-card-title">
-          <i class="bi bi-cart3" style="color:var(--amber)"></i> Cart Items
-        </h3>
-        <span class="biz-badge biz-badge-gray">
-          {{ cart_items|length }} item{{ 's' if cart_items|length != 1 }}
-        </span>
-      </div>
-
-      <div style="overflow-x:auto">
-        <table style="width:100%;border-collapse:collapse">
-
-          <thead>
-            <tr class="cart-thead">
-              <th style="padding-left:1.25rem">Item</th>
-              <th style="text-align:right">Unit Price</th>
-              <th style="text-align:center">Qty</th>
-              <th style="text-align:center;width:110px">Discount (KES)</th>
-              <th style="text-align:right">Subtotal</th>
-              <th style="text-align:center;width:90px">Actions</th>
-            </tr>
-          </thead>
-
-          <tbody class="cart-tbody">
-            {% set base_grand_total = namespace(value=0) %}
-            {% for item in cart_items %}
-              {% set unit_price = item.product.selling_price or 0 %}
-              {% set row_total  = item.quantity * unit_price %}
-              {% set base_grand_total.value = base_grand_total.value + row_total %}
-
-            <tr class="cart-row"
-                data-price="{{ unit_price }}"
-                data-qty="{{ item.quantity }}">
-
-              <!-- Product name + hidden cart item id -->
-              <td style="padding-left:1.25rem">
-                <div class="cart-product-name">{{ item.product.name }}</div>
-                <div class="cart-product-sku">SKU #{{ item.product.id }}</div>
-                <input type="hidden" name="item_ids[]" value="{{ item.id }}">
-              </td>
-
-              <!-- Unit price -->
-              <td style="text-align:right;color:var(--ink-muted);font-size:.875rem">
-                KES {{ "{:,.2f}".format(unit_price) }}
-              </td>
-
-              <!-- Qty — posts to update_cart_quantity, outside checkout form via JS intercept -->
-              <td style="text-align:center">
-                <div class="qty-form">
-                  <button type="button" class="qty-btn" onclick="adjQty(this,-1)">
-                    <i class="bi bi-dash"></i>
-                  </button>
-                  <input type="number"
-                         class="qty-input qty-field"
-                         value="{{ item.quantity }}"
-                         min="1"
-                         data-item-id="{{ item.id }}"
-                         data-original="{{ item.quantity }}"
-                         onchange="submitQtyUpdate(this)">
-                  <button type="button" class="qty-btn" onclick="adjQty(this,1)">
-                    <i class="bi bi-plus"></i>
-                  </button>
-                </div>
-              </td>
-
-              <!-- Per-item discount (feeds checkout form) -->
-              <td style="text-align:center">
-                <input type="number"
-                       step="0.01"
-                       name="discounts[]"
-                       class="discount-input"
-                       value="0"
-                       min="0"
-                       placeholder="0.00">
-              </td>
-
-              <!-- Row subtotal (live-updated by JS) -->
-              <td class="row-subtotal"
-                  style="text-align:right;font-family:var(--font-display);font-weight:800;color:var(--ink)"
-                  data-base-total="{{ row_total }}">
-                KES {{ "{:,.2f}".format(row_total) }}
-              </td>
-
-              <!-- ══ ACTIONS: Edit + Delete ══
-                   Both are plain <a> links — no nested forms.
-                   ▸ Edit   → edit_product (GET, product id)
-                   ▸ Delete → remove_from_cart (GET accepted by route, cart item id)
-              -->
-              <td class="cart-action-cell" style="text-align:center">
-                <div style="display:flex;align-items:center;justify-content:center;gap:.35rem">
-
-                  <!-- Edit product -->
-                  <a href="{{ url_for('edit_product', id=item.product.id) }}"
-                     class="cart-act-btn cart-act-btn-edit"
-                     title="Edit product — {{ item.product.name }}">
-                    <i class="bi bi-pencil-square"></i>
-                  </a>
-
-                  <!-- Remove from cart (GET — route accepts GET & POST) -->
-                  <a href="{{ url_for('remove_from_cart', item_id=item.id) }}"
-                     class="cart-act-btn cart-act-btn-del"
-                     title="Remove from cart"
-                     onclick="return confirm('Remove \'{{ item.product.name }}\' from the cart?')">
-                    <i class="bi bi-trash-fill"></i>
-                  </a>
-
-                </div>
-              </td>
-
-            </tr>
-            {% endfor %}
-          </tbody>
-
-        </table>
-      </div>
-    </div><!-- /items card -->
-
-    <!-- ── RIGHT: Summary + payment ── -->
-    <div class="cart-summary">
-      <div class="biz-card">
+    <input type="hidden" name="payment_method_override" id="hidden-payment-method" value="Cash">
+    
+    <div class="cart-layout">
+      <div class="biz-card" style="overflow:hidden; animation:card-in .4s var(--ease) both">
         <div class="biz-card-header">
           <h3 class="biz-card-title">
-            <i class="bi bi-receipt" style="color:var(--green)"></i> Order Summary
+            <i class="bi bi-cart3" style="color:var(--amber)"></i> Cart Items
           </h3>
+          <span class="biz-badge biz-badge-gray">
+            {{ cart_items|length }} item{{ 's' if cart_items|length != 1 }}
+          </span>
         </div>
-        <div class="biz-card-body">
 
-          <!-- Line items -->
-          <div class="summary-row">
-            <span class="summary-label">Subtotal</span>
-            <span class="summary-value" id="subtotal-display">
-              KES {{ "{:,.2f}".format(base_grand_total.value) }}
-            </span>
-          </div>
-          <div class="summary-row">
-            <span class="summary-label">Discounts</span>
-            <span class="summary-value text-discount" id="total-discount-display">− KES 0.00</span>
-            <input type="hidden" name="total_discount_amount" id="hidden-discount" value="0">
-          </div>
-          <div class="summary-row">
-            <span class="summary-label">VAT (16%)</span>
-            <span class="summary-value text-tax" id="tax-display">KES 0.00</span>
-            <input type="hidden" name="tax_amount" id="hidden-tax" value="0">
-          </div>
+        <div style="overflow-x:auto">
+          <table style="width:100%; border-collapse:collapse">
+            <thead>
+              <tr class="cart-thead">
+                <th style="padding-left:1.25rem">Item</th>
+                <th style="text-align:right">Unit Price</th>
+                <th style="text-align:center">Qty</th>
+                <th style="text-align:center; width:110px">Discount (KES)</th>
+                <th style="text-align:right">Subtotal</th>
+                <th style="text-align:center; width:90px">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="cart-tbody">
+              {% set row_accumulator = namespace(value=0) %}
+              {% for item in cart_items %}
+                {% set unit_price = item.product.selling_price or 0 %}
+                {% set row_total  = item.quantity * unit_price %}
+                {% set row_accumulator.value = row_accumulator.value + row_total %}
 
-          <!-- Final total -->
-          <div class="summary-total-row">
-            <span class="summary-total-label">Final Total</span>
-            <span class="summary-total-value" id="final-total-display">
-              KES {{ "{:,.2f}".format(base_grand_total.value) }}
-            </span>
-            <input type="hidden" name="final_total" id="hidden-final-total" value="{{ base_grand_total.value }}">
-          </div>
-
-          <!-- Cash received / change -->
-          <div class="cash-panel">
-            <div class="cash-panel-label">
-              <i class="bi bi-cash-coin me-1"></i> Cash Received
-            </div>
-            <div class="cash-input-wrap">
-              <span class="cash-input-addon">KES</span>
-              <input type="number"
-                     step="0.01"
-                     id="cash-received"
-                     name="cash_received"
-                     class="cash-input"
-                     placeholder="0.00">
-            </div>
-            <div class="change-row">
-              <span class="change-label">Change</span>
-              <span class="change-value" id="change-display">KES 0.00</span>
-              <input type="hidden" name="change_given" id="hidden-change" value="0">
-            </div>
-          </div>
-
-          <!-- Finalize -->
-          <button type="submit" class="finalize-btn">
-            <i class="bi bi-printer-fill"></i> Finalise &amp; Print
-          </button>
-
+              <tr class="cart-row" data-price="{{ unit_price }}" data-qty="{{ item.quantity }}">
+                <td style="padding-left:1.25rem">
+                  <div class="cart-product-name">{{ item.product.name }}</div>
+                  <div class="cart-product-sku">SKU #{{ item.product.id }}</div>
+                  <input type="hidden" name="item_ids[]" value="{{ item.id }}">
+                </td>
+                <td style="text-align:right; color:var(--ink-muted); font-size:.875rem">
+                  KES {{ "{:,.2f}".format(unit_price) }}
+                </td>
+                <td style="text-align:center">
+                  <div class="qty-form">
+                    <button type="button" class="qty-btn" onclick="adjQty(this,-1)">
+                      <i class="bi bi-dash"></i>
+                    </button>
+                    <input type="number" class="qty-input qty-field" value="{{ item.quantity }}" min="1" data-item-id="{{ item.id }}" onchange="submitQtyUpdate(this)">
+                    <button type="button" class="qty-btn" onclick="adjQty(this,1)">
+                      <i class="bi bi-plus"></i>
+                    </button>
+                  </div>
+                </td>
+                <td style="text-align:center">
+                  <input type="number" step="0.01" name="discounts[]" class="discount-input" value="0" min="0" placeholder="0.00">
+                </td>
+                <td class="row-subtotal" style="text-align:right; font-family:var(--font-display); font-weight:800; color:var(--ink)" data-base-total="{{ row_total }}">
+                  KES {{ "{:,.2f}".format(row_total) }}
+                </td>
+                <td class="cart-action-cell" style="text-align:center">
+                  <div style="display:flex; align-items:center; justify-content:center; gap:.35rem">
+                    <a href="{{ url_for('edit_product', id=item.product.id) }}" class="cart-act-btn cart-act-btn-edit" title="Edit product">
+                      <i class="bi bi-pencil-square"></i>
+                    </a>
+                    <a href="{{ url_for('remove_from_cart', item_id=item.id) }}" class="cart-act-btn cart-act-btn-del" title="Remove from cart" onclick="return confirm('Remove item from cart?')">
+                      <i class="bi bi-trash-fill"></i>
+                    </a>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
       </div>
-    </div><!-- /summary -->
 
-  </div><!-- /cart-layout -->
+      <div class="cart-summary">
+        <div class="biz-card">
+          <div class="biz-card-header">
+            <h3 class="biz-card-title">
+              <i class="bi bi-receipt" style="color:var(--green)"></i> Order Summary
+            </h3>
+          </div>
+          <div class="biz-card-body">
+            <div class="summary-row">
+              <span class="summary-label">Subtotal</span>
+              <span class="summary-value" id="subtotal-display">
+                KES {{ "{:,.2f}".format(base_grand_total) }}
+              </span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Discounts</span>
+              <span class="summary-value text-discount" id="total-discount-display">− KES 0.00</span>
+              <input type="hidden" name="total_discount_amount" id="hidden-discount" value="0">
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">VAT (16%, incl.)</span>
+              <span class="summary-value text-tax" id="tax-display">KES 0.00</span>
+              <input type="hidden" name="tax_amount" id="hidden-tax" value="0">
+            </div>
+
+            <div class="summary-total-row">
+              <span class="summary-total-label">Final Total</span>
+              <span class="summary-total-value" id="final-total-display">
+                KES {{ "{:,.2f}".format(base_grand_total) }}
+              </span>
+              <input type="hidden" name="final_total" id="hidden-final-total" value="{{ base_grand_total }}">
+            </div>
+
+            <div class="cash-panel">
+              <div class="cash-panel-label"><i class="bi bi-cash-coin me-1"></i> Cash Received</div>
+              <div class="cash-input-wrap">
+                <span class="cash-input-addon">KES</span>
+                <input type="number" step="0.01" id="cash-received" name="cash_received" class="cash-input" placeholder="0.00">
+              </div>
+              <div class="change-row">
+                <span class="change-label">Change</span>
+                <span class="change-value" id="change-display">KES 0.00</span>
+                <input type="hidden" name="change_given" id="hidden-change" value="0">
+              </div>
+            </div>
+
+            <button type="submit" class="finalize-btn" id="cash-submit-btn">
+              <i class="bi bi-printer-fill"></i> Finalise &amp; Print
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </form>
-
   {% else %}
-  <!-- ══ EMPTY CART ══ -->
   <div class="biz-card" style="animation:card-in .4s var(--ease) both">
     <div class="biz-card-body">
       <div class="cart-empty">
@@ -529,8 +543,35 @@
     </div>
   </div>
   {% endif %}
+</div>
 
-</div><!-- /page-wrap -->
+<div class="native-modal-overlay" id="mpesaModalOverlay">
+  <div class="native-modal">
+    <div class="native-modal-header">
+      <h3 class="native-modal-title"><i class="bi bi-phone-vibrate text-success"></i> M-PESA Express Payment</h3>
+      <button type="button" class="native-modal-close" onclick="closeMpesaFlowModal()">×</button>
+    </div>
+    <div class="native-modal-body" id="mpesaModalDynamicZone">
+      <div id="mpesaInputState">
+        <div style="margin-bottom: 1rem">
+          <label style="display:block; font-size:0.68rem; font-weight:700; text-transform:uppercase; color:var(--ink-muted); margin-bottom:0.2rem;">Amount Due</label>
+          <div id="mpesa-modal-total-view" style="font-size:1.4rem; font-weight:800; color:var(--ink);">KES 0.00</div>
+        </div>
+        <div style="margin-bottom:1.25rem">
+          <label for="mpesa_phone" style="display:block; font-size:0.68rem; font-weight:700; text-transform:uppercase; color:var(--ink-muted); margin-bottom:0.4rem;">Customer Phone Line</label>
+          <div class="cash-input-wrap">
+            <span class="cash-input-addon"><i class="bi bi-telephone"></i></span>
+            <input type="text" id="mpesa_phone" class="cash-input" placeholder="2547XXXXXXXX" style="font-size:1rem; font-weight:700;">
+          </div>
+          <small style="color:var(--ink-muted); font-size:0.7rem; margin-top:0.25rem; display:block;">Format: 254712345678 </small>
+        </div>
+        <button type="button" class="mpesa-btn" style="margin-top:0; width:100%;" onclick="executeNativeStkPush()">
+          <i class="bi bi-lightning-charge-fill"></i> Send PIN Prompt
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -538,39 +579,67 @@
 document.addEventListener('DOMContentLoaded', function () {
 
   /* ════════════════════════════════════════
-     LIVE CALCULATION — all original logic preserved exactly
-  ════════════════════════════════════════ */
+     INITIAL STATE & CONFIGURATION
+     ════════════════════════════════════════ */
   const discountInputs = document.querySelectorAll('.discount-input');
   const cashInput      = document.getElementById('cash-received');
   const TAX_RATE       = 0.16;
+  
+  // Seed the running total from Flask so the M-Pesa modal and hidden field
+  // are correct on page load, before any JS updateCalculations() fires.
+  let activeCalculatedTotal = {{ base_grand_total | default(0) }};
 
-  function updateCalculations() {
-    let itemsSubtotal = 0;
+  /* ════════════════════════════════════════
+     LIVE CALCULATION LOGIC
+     ════════════════════════════════════════ */
+     function updateCalculations() {
+    let itemsSubtotal = 0;   // Sum of all row totals BEFORE any discount
     let totalDiscount = 0;
 
     document.querySelectorAll('.cart-row').forEach(row => {
-      const baseRowTotal = parseFloat(row.querySelector('.row-subtotal').dataset.baseTotal);
-      const disc         = parseFloat(row.querySelector('.discount-input').value) || 0;
-      itemsSubtotal += (baseRowTotal - disc);
+      const baseRowTotal = parseFloat(row.querySelector('.row-subtotal').dataset.baseTotal) || 0;
+      const rawDisc      = parseFloat(row.querySelector('.discount-input').value) || 0;
+      // Clamp: discount cannot be negative or exceed the row's own total
+      const disc         = Math.min(Math.max(rawDisc, 0), baseRowTotal);
+
+      itemsSubtotal += baseRowTotal;
       totalDiscount += disc;
     });
 
-    const taxAmount  = itemsSubtotal * TAX_RATE;
-    const finalTotal = itemsSubtotal + taxAmount;
+    // ── VAT-INCLUSIVE MATH ──────────────────────────────────────────────
+    // Prices on shelf already contain 16% VAT.
+    // Final Total  = items total − discount  (nothing added — tax is INSIDE)
+    // VAT display  = extracted portion for cashier info / KRA reporting only
+    // ───────────────────────────────────────────────────────────────────
+    const afterDiscount = itemsSubtotal - totalDiscount;   // what customer pays
+    const taxAmount     = (afterDiscount * TAX_RATE) / (1 + TAX_RATE);  // extracted, NOT added
+
+    activeCalculatedTotal = afterDiscount;
 
     // Update displays
-    document.getElementById('subtotal-display').innerText       = 'KES ' + fmt(itemsSubtotal);
+    // Subtotal shows the full VAT-inclusive amount AFTER discount — this is what the
+    // customer sees on the shelf tag. The VAT row below it is informational only.
+    document.getElementById('subtotal-display').innerText       = 'KES ' + fmt(afterDiscount);
     document.getElementById('total-discount-display').innerText = '− KES ' + fmt(totalDiscount);
     document.getElementById('tax-display').innerText            = 'KES ' + fmt(taxAmount);
-    document.getElementById('final-total-display').innerText    = 'KES ' + fmt(finalTotal);
+    document.getElementById('final-total-display').innerText    = 'KES ' + fmt(afterDiscount);
 
     // Update hidden fields for Flask
     document.getElementById('hidden-discount').value    = totalDiscount.toFixed(2);
     document.getElementById('hidden-tax').value         = taxAmount.toFixed(2);
-    document.getElementById('hidden-final-total').value = finalTotal.toFixed(2);
+    document.getElementById('hidden-final-total').value = afterDiscount.toFixed(2);
 
-    calculateChange(finalTotal);
-  }
+    // Update each row's displayed subtotal to reflect its clamped discount
+    document.querySelectorAll('.cart-row').forEach(row => {
+      const baseRowTotal = parseFloat(row.querySelector('.row-subtotal').dataset.baseTotal) || 0;
+      const rawDisc      = parseFloat(row.querySelector('.discount-input').value) || 0;
+      const disc         = Math.min(Math.max(rawDisc, 0), baseRowTotal);
+      const rowCell      = row.querySelector('.row-subtotal');
+      rowCell.innerText  = 'KES ' + fmt(baseRowTotal - disc);
+    });
+
+    calculateChange(afterDiscount);
+}
 
   function calculateChange(total) {
     const received    = parseFloat(cashInput.value) || 0;
@@ -591,15 +660,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
   discountInputs.forEach(inp => inp.addEventListener('input', updateCalculations));
   cashInput.addEventListener('input', updateCalculations);
-  updateCalculations(); // run once on load
+  updateCalculations(); 
 
   /* ════════════════════════════════════════
-     QTY STEPPER  — posts to update_cart_quantity
-     Uses a hidden <form> outside the checkout form
-     to avoid nested-form issues entirely.
-  ════════════════════════════════════════ */
-
-  // Hidden form injected once into <body> — reused for every qty update
+     QTY STEPPER SYSTEM
+     ════════════════════════════════════════ */
   const qtyForm = document.createElement('form');
   qtyForm.method = 'POST';
   qtyForm.style.display = 'none';
@@ -609,7 +674,6 @@ document.addEventListener('DOMContentLoaded', function () {
   qtyForm.appendChild(qtyFormQtyInput);
   document.body.appendChild(qtyForm);
 
-  // Called by +/- buttons
   window.adjQty = function (btn, delta) {
     const wrap  = btn.closest('.qty-form');
     const input = wrap.querySelector('.qty-field');
@@ -620,7 +684,6 @@ document.addEventListener('DOMContentLoaded', function () {
     submitQtyUpdate(input);
   };
 
-  // Called on direct input change or after adjQty
   window.submitQtyUpdate = function (input) {
     const itemId  = input.dataset.itemId;
     const newQty  = parseInt(input.value);
@@ -630,6 +693,169 @@ document.addEventListener('DOMContentLoaded', function () {
     qtyFormQtyInput.value = newQty;
     qtyForm.submit();
   };
+
+  /* ════════════════════════════════════════
+     ASYNCHRONOUS MPESA FLOW ENGINE
+     ════════════════════════════════════════ */
+  window.openMpesaFlowModal = function() { 
+    document.getElementById('mpesa-modal-total-view').innerText = 'KES ' + fmt(activeCalculatedTotal);
+    document.getElementById('mpesaModalOverlay').style.display = 'flex'; 
+  };
+
+  window.closeMpesaFlowModal = function() {
+    document.getElementById('mpesaModalOverlay').style.display = 'none';
+  };
+
+  window.executeNativeStkPush = async function() {
+    const phone = document.getElementById('mpesa_phone').value.trim();
+    if (!phone || phone.length < 10) {
+      alert("Please enter a valid phone number format (e.g., 254712345678).");
+      return;
+    }
+
+    const dynamicZone = document.getElementById('mpesaModalDynamicZone');
+    dynamicZone.innerHTML = `
+      <div style="text-align:center; padding:1.5rem 0;">
+        <div style="width:36px; height:36px; border:3.5px solid var(--border); border-top-color:#10b981; border-radius:50%; animation:native-spin 0.8s linear infinite; margin:0 auto 1rem auto;"></div>
+        <h4 style="font-weight:700; margin-bottom:0.2rem; color:var(--ink);">Connecting Gateway</h4>
+        <p style="color:var(--ink-muted); font-size:0.85rem;">Sending STK Push to client handset line...</p>
+      </div>
+    `;
+
+    try {
+      let response = await fetch('/api/v1/payments/stk-push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: phone, amount: activeCalculatedTotal.toFixed(2) })
+      });
+      let data = await response.json();
+      if (data.success) {
+        dynamicZone.innerHTML = `
+          <div style="text-align:center; padding:1.5rem 0;">
+            <div style="width:36px; height:36px; border:3.5px solid transparent; border-top-color:#10b981; border-bottom-color:#10b981; border-radius:50%; animation:native-spin 1.2s ease-in-out infinite; margin:0 auto 1rem auto;"></div>
+            <h4 style="font-weight:700; color:#10b981; margin-bottom:0.2rem;">PIN Prompt Live</h4>
+            <p style="color:var(--ink); font-size:0.88rem; font-weight:600;">Awaiting customer authorization PIN receipt entry...</p>
+          </div>
+        `;
+        startStatusVerificationLoop(data.checkout_request_id);
+      } else {
+        alert("Rejection: " + (data.error || "Failed to prompt transaction."));
+        window.location.reload();
+      }
+    } catch (err) { 
+      alert("Communication error targeting local network pipeline server."); 
+      window.location.reload();
+    }
+  };
+
+  function startStatusVerificationLoop(checkoutId) {
+    let attempts = 0;
+    const MAX_ATTEMPTS = 40; // 40 × 3 seconds = 2 minutes before auto-timeout
+
+    let loop = setInterval(async () => {
+      attempts++;
+
+      // FIX: Hard timeout — if Safaricom never calls back (expired tunnel, sandbox delay,
+      // network drop), the old code looped forever. Now we stop and inform the cashier.
+      if (attempts >= MAX_ATTEMPTS) {
+        clearInterval(loop);
+        document.getElementById('mpesaModalDynamicZone').innerHTML = `
+          <div style="text-align:center; padding:1.5rem 0;">
+            <div style="font-size:2.5rem; color:#f59e0b; margin-bottom:0.5rem;">⚠</div>
+            <h4 style="font-weight:700; color:var(--ink); margin-bottom:0.2rem;">Payment Timed Out</h4>
+            <p style="color:var(--ink-muted); font-size:0.85rem;">No confirmation received from M-Pesa within 2 minutes. Please verify the transaction manually before proceeding.</p>
+            <button type="button" class="mpesa-btn" style="margin-top:1rem;"
+              onclick="closeMpesaFlowModal();">Close Window</button>
+          </div>`;
+        return;
+      }
+
+      try {
+        let response = await fetch(`/api/v1/payments/check-status/${checkoutId}`);
+
+        // Break instantly if backend threw a severe error
+        if (!response.ok) {
+          clearInterval(loop);
+          closeMpesaFlowModal();
+          alert("Connection context lost while accessing payment channel status.");
+          return;
+        }
+
+        let report = await response.json();
+
+        // Stabilize database string comparisons to uniform uppercase values
+        const normalizedStatus = String(report.status).trim().toUpperCase();
+
+        // 1. Explicit Success Handler
+        if (normalizedStatus === 'SUCCESS' || normalizedStatus === 'COMPLETED') {
+          clearInterval(loop);
+          document.getElementById('mpesaModalDynamicZone').innerHTML = `
+            <div style="text-align:center; padding:1.5rem 0;">
+              <div style="font-size:2.5rem; color:#10b981; margin-bottom:0.5rem;">✓</div>
+              <h4 style="font-weight:700; color:var(--ink); margin-bottom:0.2rem;">Payment Cleared!</h4>
+              <p style="color:var(--ink-muted); font-size:0.85rem;">M-Pesa Ref: <strong>${report.receipt}</strong></p>
+            </div>
+          `;
+
+          document.getElementById('hidden-payment-method').value = 'Mpesa';
+          document.getElementById('cash-received').value = activeCalculatedTotal.toFixed(2);
+
+          setTimeout(() => {
+            document.getElementById('checkout-form').submit();
+          }, 1500);
+
+        // 2. Explicit Failure Handler (covers insufficient funds, cancellation, wrong PIN, timeout)
+        } else if (normalizedStatus === 'FAILED' || normalizedStatus === 'REJECTED') {
+          clearInterval(loop); // Stop the polling loop immediately on any failure
+
+          const rawMessage = report.message || 'Transaction declined on customer device.';
+
+          // Detect insufficient funds using both the result_code from the server
+          // AND the message text as a fallback — covers sandbox quirks
+          const isInsufficientFunds =
+            report.result_code === 1 ||
+            report.result_code === '1' ||
+            rawMessage.toLowerCase().includes('insufficient') ||
+            rawMessage.toLowerCase().includes('balance');
+
+          // Update the modal to show what went wrong
+          document.getElementById('mpesaModalDynamicZone').innerHTML = `
+            <div style="text-align:center; padding:1.5rem 0;">
+              <div style="font-size:2.5rem; color:#dc2626; margin-bottom:0.5rem;">✕</div>
+              <h4 style="font-weight:700; color:var(--ink); margin-bottom:0.2rem;">Transaction Failed</h4>
+              <p style="color:var(--red); font-size:0.95rem; font-weight:600;">${rawMessage}</p>
+              <button type="button" class="mpesa-btn" style="margin-top:1rem; background:#dc2626; border-color:#dc2626;"
+                onclick="closeMpesaFlowModal();">Close Window</button>
+            </div>`;
+
+          if (isInsufficientFunds) {
+            // Show the flash banner so the cashier is clearly alerted
+            const banner = document.getElementById('mpesa-flash-banner');
+            const msg    = document.getElementById('mpesa-flash-message');
+            msg.innerText = rawMessage;
+            banner.style.display = 'flex';
+
+            // Close modal and scroll cashier to the banner
+            setTimeout(() => {
+              closeMpesaFlowModal();
+              banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 1800);
+          }
+
+        }
+        // If normalizedStatus is 'PENDING' or anything else, do nothing —
+        // the interval fires again in 3 seconds naturally.
+
+      } catch (e) {
+        // FIX: The old catch block was missing clearInterval — on any network/parse
+        // error the loop kept retrying silently forever. Now it stops and tells the cashier.
+        clearInterval(loop);
+        closeMpesaFlowModal();
+        console.error("M-Pesa polling loop fatal error: ", e);
+        alert("Lost connection to the payment status service. Please verify the transaction manually.");
+      }
+    }, 3000); // Poll every 3 seconds
+  }
 
 });
 </script>

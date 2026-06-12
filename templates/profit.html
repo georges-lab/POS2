@@ -3,11 +3,13 @@
 
 {% block content %}
 <div class="container mt-4">
+
+    {# ── Page Header ── #}
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="fw-bold"><i class="bi bi-currency-exchange text-success"></i> Financial Overview</h2>
-        
+
         {% if current_user.is_authenticated and current_user.role.lower() == 'admin' %}
-        <form method="POST" action="{{ url_for('delete_all_sales') }}" 
+        <form method="POST" action="{{ url_for('delete_all_sales') }}"
               onsubmit="return confirm('CRITICAL WARNING: This will permanently erase ALL sales history and reset your profit analysis. This action cannot be undone. Are you absolutely sure?');">
             <button type="submit" class="btn btn-outline-danger btn-sm px-3 fw-bold shadow-sm">
                 <i class="bi bi-trash3 me-1"></i> Purge History
@@ -16,39 +18,102 @@
         {% endif %}
     </div>
 
-    <div class="row g-4 mb-5">
+    {# ── Row 1: Revenue + Cost of Goods + Gross Profit ── #}
+    <div class="row g-4 mb-3">
+
+        {# Revenue #}
         <div class="col-md-4">
-            <div class="card border-0 shadow-sm bg-white p-4 text-center">
+            <div class="card border-0 shadow-sm bg-white p-4 text-center h-100">
                 <small class="text-muted text-uppercase fw-bold">Total Revenue</small>
                 <h2 class="display-6 fw-bold text-dark mt-2">KES {{ "{:,.2f}".format(revenue) }}</h2>
-                <div class="progress mt-3" style="height: 5px;">
+                <p class="text-muted small mb-2">What customers actually paid (after discounts)</p>
+                <div class="progress mt-auto" style="height: 5px;">
                     <div class="progress-bar bg-primary" style="width: 100%"></div>
                 </div>
             </div>
         </div>
 
+        {# Cost of Goods Sold #}
         <div class="col-md-4">
-            <div class="card border-0 shadow-sm bg-white p-4 text-center">
-                <small class="text-muted text-uppercase fw-bold">Cost of Goods</small>
+            <div class="card border-0 shadow-sm bg-white p-4 text-center h-100">
+                <small class="text-muted text-uppercase fw-bold">Cost of Goods Sold</small>
                 <h2 class="display-6 fw-bold text-danger mt-2">KES {{ "{:,.2f}".format(cost) }}</h2>
-                <div class="progress mt-3" style="height: 5px;">
-                    <div class="progress-bar bg-danger" style="width: {{ cost_pc }}%"></div>
+                <p class="text-muted small mb-2">{{ cost_pc }}% of revenue</p>
+                <div class="progress mt-auto" style="height: 5px;">
+                    <div class="progress-bar bg-danger" style="width: {{ [cost_pc, 100] | min }}%"></div>
                 </div>
             </div>
         </div>
 
+        {# Gross Profit #}
         <div class="col-md-4">
-            <div class="card border-0 shadow-sm bg-success text-white p-4 text-center">
-                <small class="text-uppercase fw-bold opacity-75">Net Profit</small>
-                <h2 class="display-6 fw-bold mt-2">KES {{ "{:,.2f}".format(profit) }}</h2>
-                <div class="progress mt-3" style="height: 5px; background: rgba(255,255,255,0.2);">
-                    <div class="progress-bar bg-white" style="width: {{ profit_pc }}%"></div>
+            <div class="card border-0 shadow-sm p-4 text-center h-100
+                {% if gross_profit >= 0 %}bg-primary text-white{% else %}bg-warning text-dark{% endif %}">
+                <small class="text-uppercase fw-bold opacity-75">Gross Profit</small>
+                <h2 class="display-6 fw-bold mt-2">KES {{ "{:,.2f}".format(gross_profit) }}</h2>
+                <p class="small mb-2 opacity-75">Revenue minus cost of goods · {{ gross_profit_pc }}%</p>
+                <div class="progress mt-auto" style="height: 5px; background: rgba(255,255,255,0.25);">
+                    <div class="progress-bar bg-white" style="width: {{ [gross_profit_pc|abs, 100] | min }}%"></div>
                 </div>
             </div>
         </div>
     </div>
 
+    {# ── Row 2: Operating Expenses + Net Profit (wider cards, more emphasis) ── #}
+    <div class="row g-4 mb-5">
+
+        {# Operating Expenses #}
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm bg-white p-4 text-center h-100">
+                <small class="text-muted text-uppercase fw-bold">Operating Expenses</small>
+                <h2 class="display-6 fw-bold text-warning mt-2">KES {{ "{:,.2f}".format(total_expenses) }}</h2>
+                <p class="text-muted small mb-2">
+                    Rent, salaries, utilities, waste write-offs &amp; other costs ·
+                    <span class="fw-semibold">{{ expenses_pc }}% of revenue</span>
+                </p>
+                <div class="progress mt-auto" style="height: 5px;">
+                    <div class="progress-bar bg-warning" style="width: {{ [expenses_pc, 100] | min }}%"></div>
+                </div>
+                <a href="{{ url_for('view_expenses') }}" class="btn btn-sm btn-outline-secondary mt-3">
+                    <i class="bi bi-list-ul me-1"></i> View Expense Breakdown
+                </a>
+            </div>
+        </div>
+
+        {# Net Profit — the real bottom line #}
+        <div class="col-md-6">
+            <div class="card border-0 shadow p-4 text-center h-100
+                {% if net_profit >= 0 %}bg-success text-white{% else %}bg-danger text-white{% endif %}">
+                <small class="text-uppercase fw-bold opacity-75">
+                    {% if net_profit >= 0 %}
+                        <i class="bi bi-graph-up-arrow me-1"></i> Net Profit
+                    {% else %}
+                        <i class="bi bi-graph-down-arrow me-1"></i> Net Loss
+                    {% endif %}
+                </small>
+                <h2 class="display-5 fw-bold mt-2">KES {{ "{:,.2f}".format(net_profit) }}</h2>
+                <p class="small mb-2 opacity-75">
+                    After all expenses · {{ net_profit_pc }}% of revenue
+                </p>
+                <div class="progress mt-auto" style="height: 6px; background: rgba(255,255,255,0.25);">
+                    <div class="progress-bar bg-white" style="width: {{ [net_profit_pc|abs, 100] | min }}%"></div>
+                </div>
+                {% if net_profit < 0 %}
+                <p class="small mt-3 mb-0 opacity-75">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    Expenses exceed gross profit by KES {{ "{:,.2f}".format(net_profit|abs) }}
+                </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {# ── Recent Sales Table ── #}
     <div class="card shadow-sm border-0">
+        <div class="card-header bg-white border-0 pt-3 pb-0 px-4">
+            <h5 class="fw-bold mb-0"><i class="bi bi-receipt me-2 text-muted"></i>Recent Sales</h5>
+            <small class="text-muted">Last 10 transactions — per-line gross profit (before operating expenses)</small>
+        </div>
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
@@ -56,20 +121,30 @@
                         <th>Date</th>
                         <th>Product</th>
                         <th>Qty</th>
-                        <th>Revenue</th>
-                        <th>Est. Profit</th>
+                        <th>Charged</th>
+                        <th>Est. Line Profit</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for sale in recent_sales %}
                     <tr>
-                        <td>{{ sale.created_at.strftime('%d %b, %H:%M') }}</td>
+                        {# Use timestamp (set at checkout); fall back to created_at for legacy rows #}
+                        <td class="text-muted small">
+                            {{ (sale.timestamp or sale.created_at).strftime('%d %b, %H:%M') }}
+                        </td>
                         <td>{{ sale.product_name }}</td>
                         <td>{{ sale.quantity_sold }}</td>
-                        <td class="fw-bold">KES {{ "{:,.2f}".format(sale.total_price) }}</td>
-                        <td class="text-success fw-bold">
-                            {% if sale.product %}
-                                +KES {{ "{:,.2f}".format(sale.total_price - (sale.quantity_sold * sale.product.buying_price)) }}
+
+                        {# total_amount = what the customer actually paid (post-discount) #}
+                        <td class="fw-bold">KES {{ "{:,.2f}".format(sale.total_amount or sale.total_price or 0) }}</td>
+
+                        {# Line profit = revenue charged minus buying cost for that line #}
+                        <td>
+                            {% if sale.product and sale.product.buying_price is not none %}
+                                {% set line_profit = (sale.total_amount or sale.total_price or 0) - (sale.quantity_sold * sale.product.buying_price) %}
+                                <span class="fw-bold {% if line_profit >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                    {% if line_profit >= 0 %}+{% endif %}KES {{ "{:,.2f}".format(line_profit) }}
+                                </span>
                             {% else %}
                                 <span class="text-muted">N/A</span>
                             {% endif %}
@@ -87,8 +162,6 @@
             </table>
         </div>
     </div>
+
 </div>
-
-
-
 {% endblock %}

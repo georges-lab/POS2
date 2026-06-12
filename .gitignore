@@ -22,3 +22,8 @@ __pycache__/
 # IDEs
 .vscode/
 .idea/
+
+# mpesa config 
+config.json
+*.db
+biztool.log

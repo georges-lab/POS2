@@ -1,162 +1,309 @@
 {% extends "base.html" %}
-{% block title %}Bulk Import - Biztool POS{% endblock %}
+{% block title %}Bulk Import — bizTOOL POS{% endblock %}
 
 {% block content %}
-<!-- Google Fonts & Icons -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<div class="bk-import-page">
 
-<div class="container-fluid py-4 animate__animated animate__fadeIn">
-    <div class="row justify-content-center">
-        <div class="col-xl-10">
-            
-            <!-- Header Section -->
-            <div class="d-flex align-items-center justify-content-between mb-4">
-                <div>
-                    <h2 class="fw-bold text-dark mb-1">Inventory Synchronization</h2>
-                    <p class="text-muted">Upload CSV or PDF files to update your POS2 stock levels in bulk.</p>
-                </div>
-                <a href="{{ url_for('products') }}" class="btn btn-light border shadow-sm px-4">
-                    <i class="bi bi-arrow-left me-2"></i>Back to Products
-                </a>
+    {# ── Diagonal accent bar ── #}
+    <div class="bk-accent-bar"></div>
+
+    <div class="container-fluid py-5 px-4 px-lg-5">
+
+        {# ── Page Header ── #}
+        <div class="bk-header d-flex align-items-end justify-content-between mb-5">
+            <div>
+                <span class="bk-eyebrow">INVENTORY MANAGEMENT</span>
+                <h1 class="bk-title mb-0">BULK<br><span class="bk-title-accent">IMPORT</span></h1>
             </div>
+            <a href="{{ url_for('products') }}" class="bk-back-btn">
+                <i class="bi bi-arrow-left"></i>
+                <span>Products</span>
+            </a>
+        </div>
 
-            <div class="row g-4">
-                <!-- Left Column: Upload Area -->
-                <div class="col-lg-7">
-                    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
-                        <div class="card-body p-5">
-                            <form action="{{ url_for('upload_products') }}" method="POST" enctype="multipart/form-data" id="uploadForm">
-                                <div class="upload-container mb-4">
-                                    <label for="file" class="upload-box border-dashed rounded-4 p-5 d-flex flex-column align-items-center justify-content-center bg-light text-center pointer transition-all w-100" id="drop-area">
-                                        <div class="icon-circle mb-3 bg-primary bg-opacity-10 text-primary">
-                                            <i class="bi bi-cloud-arrow-up display-5"></i>
-                                        </div>
-                                        <h5 class="fw-bold mb-1">Drop your file here</h5>
-                                        <p class="text-muted small">or click to browse from your computer</p>
-                                        <input type="file" name="file" id="file" class="d-none" accept=".csv,.pdf" required>
-                                        <div id="file-info" class="mt-3 d-none">
-                                            <span class="badge bg-success py-2 px-3 rounded-pill" id="file-name"></span>
-                                        </div>
-                                    </label>
-                                </div>
-                                
-                                <div class="alert alert-info border-0 bg-info bg-opacity-10 d-flex align-items-center mb-4 rounded-3">
-                                    <i class="bi bi-shield-check fs-4 me-3"></i>
-                                    <div class="small"><strong>Auto-Clean Enabled:</strong> Currency symbols (Ksh, $) and commas will be automatically stripped from price fields.</div>
-                                </div>
+        {# ── Flash Messages ── #}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="bk-flash bk-flash--{{ category }} mb-4" role="alert">
+                    <i class="bi {% if category == 'success' %}bi-check-circle-fill{% elif category == 'danger' %}bi-x-circle-fill{% else %}bi-exclamation-triangle-fill{% endif %} me-2"></i>
+                    {{ message }}
+                    <button type="button" class="bk-flash-close" onclick="this.parentElement.remove()">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
 
-                                <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold rounded-3 shadow" id="submitBtn">
-                                    <i class="bi bi-lightning-fill me-2"></i>Process Inventory Data
+        <div class="row g-5 align-items-start">
+
+            {# ══════════════════════════════════════
+               LEFT — Upload Form
+            ══════════════════════════════════════ #}
+            <div class="col-lg-7">
+                <form action="{{ url_for('upload_products') }}"
+                      method="POST"
+                      enctype="multipart/form-data"
+                      id="uploadForm"
+                      novalidate>
+
+                    {# Drop Zone #}
+                    <div class="bk-dropzone" id="dropZone">
+                        <input type="file" name="file" id="file"
+                               accept=".csv,.pdf" required
+                               class="bk-dropzone__input">
+
+                        <div class="bk-dropzone__idle" id="idleState">
+                            <div class="bk-dropzone__icon-ring">
+                                <i class="bi bi-cloud-arrow-up-fill"></i>
+                            </div>
+                            <p class="bk-dropzone__headline">Drop file here</p>
+                            <p class="bk-dropzone__sub">or <span class="bk-link">click to browse</span></p>
+                            <div class="bk-format-chips mt-3">
+                                <span class="bk-chip">.CSV</span>
+                                <span class="bk-chip">.PDF</span>
+                            </div>
+                        </div>
+
+                        <div class="bk-dropzone__selected d-none" id="selectedState">
+                            <div class="bk-file-card" id="fileCard">
+                                <div class="bk-file-card__icon" id="fileIcon">
+                                    <i class="bi bi-file-earmark-text-fill"></i>
+                                </div>
+                                <div class="bk-file-card__info">
+                                    <p class="bk-file-card__name" id="fileName">—</p>
+                                    <p class="bk-file-card__size" id="fileSize">—</p>
+                                </div>
+                                <button type="button" class="bk-file-card__remove" id="removeFile"
+                                        title="Remove file">
+                                    <i class="bi bi-x-circle-fill"></i>
                                 </button>
-                            </form>
+                            </div>
+                        </div>
+
+                        {# Drag-over overlay #}
+                        <div class="bk-dropzone__overlay" id="dragOverlay">
+                            <i class="bi bi-cloud-arrow-down-fill"></i>
+                            <span>Release to upload</span>
                         </div>
                     </div>
-                </div>
 
-                <!-- Right Column: Rules & Logic -->
-                <div class="col-lg-5">
-                    <div class="card border-0 bg-dark text-white shadow-lg rounded-4 h-100">
-                        <div class="card-body p-4">
-                            <h5 class="fw-bold mb-4 text-info"><i class="bi bi-layout-text-window-reverse me-2"></i>System Requirements</h5>
-                            
-                            <div class="requirement-item mb-4">
-                                <div class="d-flex align-items-center mb-2">
-                                    <span class="badge bg-danger rounded-circle p-1 me-2"><i class="bi bi-check2"></i></span>
-                                    <span class="fw-bold small text-uppercase tracking-wider">Mandatory Columns</span>
-                                </div>
-                                <div class="ps-4">
-                                    <code class="text-info bg-white bg-opacity-10 p-1 rounded">Name</code>
-                                    <p class="text-muted small mt-1 mb-0">At least one column must be labeled Name, Product, or Item.</p>
-                                </div>
-                            </div>
+                    {# Auto-clean notice #}
+                    <div class="bk-notice mt-4">
+                        <i class="bi bi-magic me-2"></i>
+                        <span><strong>Auto-Clean ON —</strong> Currency symbols (Ksh, KES, $) and commas are stripped automatically from all price fields.</span>
+                    </div>
 
-                            <div class="requirement-item mb-4">
-                                <div class="d-flex align-items-center mb-2">
-                                    <span class="badge bg-primary rounded-circle p-1 me-2"><i class="bi bi-check2"></i></span>
-                                    <span class="fw-bold small text-uppercase tracking-wider">Pricing Logic</span>
-                                </div>
-                                <div class="ps-4">
-                                    <p class="text-light small mb-1"><strong>Buying_Price:</strong> Your acquisition cost.</p>
-                                    <p class="text-light small mb-0"><strong>Selling_Price:</strong> If blank, system applies a <span class="text-warning">25% margin</span>.</p>
-                                </div>
-                            </div>
+                    {# Submit #}
+                    <button type="submit" class="bk-submit-btn mt-4" id="submitBtn">
+                        <span class="bk-submit-btn__inner" id="submitInner">
+                            <i class="bi bi-lightning-charge-fill me-2"></i>
+                            Process Inventory Data
+                        </span>
+                        <span class="bk-submit-btn__loading d-none" id="submitLoading">
+                            <span class="bk-spinner me-2"></span>
+                            Syncing…
+                        </span>
+                        <div class="bk-submit-btn__shine"></div>
+                    </button>
+                </form>
+            </div>
 
-                            <div class="requirement-item mb-4">
-                                <div class="d-flex align-items-center mb-2">
-                                    <span class="badge bg-success rounded-circle p-1 me-2"><i class="bi bi-check2"></i></span>
-                                    <span class="fw-bold small text-uppercase tracking-wider">Accepted Formats</span>
-                                </div>
-                                <div class="ps-4">
-                                    <span class="badge border border-secondary text-secondary me-1">.CSV</span>
-                                    <span class="badge border border-secondary text-secondary">.PDF</span>
-                                </div>
-                            </div>
+            {# ══════════════════════════════════════
+               RIGHT — Requirements Panel
+            ══════════════════════════════════════ #}
+            <div class="col-lg-5">
+                <div class="bk-panel">
+                    <div class="bk-panel__header">
+                        <i class="bi bi-journal-code me-2"></i>
+                        FORMAT GUIDE
+                    </div>
 
-                            <hr class="border-secondary opacity-25 my-4">
-                            
-                            <div class="p-3 rounded-4 bg-white bg-opacity-5 border border-white border-opacity-10">
-                                <p class="mb-0 small text-muted font-monospace italic">
-                                    <i class="bi bi-info-circle me-1"></i> Stress-Proofing: Your POS2 engine handles row-skipping automatically for corrupt data.
-                                </p>
+                    {# CSV Section #}
+                    <div class="bk-panel__section">
+                        <div class="bk-panel__tag bk-panel__tag--csv">CSV</div>
+                        <p class="bk-panel__desc">Standard comma-separated file. Exported from Excel or Google Sheets.</p>
+
+                        <div class="bk-col-table">
+                            <div class="bk-col-table__row bk-col-table__row--head">
+                                <span>Column Name</span>
+                                <span>Required</span>
                             </div>
+                            {% for col, req in [
+                                ('name / product / item', True),
+                                ('buying_price / price', False),
+                                ('selling_price', False),
+                                ('quantity', False),
+                                ('category', False),
+                                ('barcode', False),
+                                ('expiry_date / expiry', False)
+                            ] %}
+                            <div class="bk-col-table__row">
+                                <code class="bk-col-table__col">{{ col }}</code>
+                                {% if req %}
+                                    <span class="bk-badge-panel bk-badge-panel--required">Required</span>
+                                {% else %}
+                                    <span class="bk-badge-panel bk-badge-panel--optional">Optional</span>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
                         </div>
+
+                        <div class="bk-tip mt-3">
+                            <i class="bi bi-lightbulb-fill me-1"></i>
+                            Date formats accepted: YYYY-MM-DD, DD/MM/YYYY, MM/DD/YYYY
+                        </div>
+                    </div>
+
+                    {# Divider #}
+                    <div class="bk-panel__divider"></div>
+
+                    {# PDF Section #}
+                    <div class="bk-panel__section">
+                        <div class="bk-panel__tag bk-panel__tag--pdf">PDF</div>
+                        <p class="bk-panel__desc">Tabular PDFs only — supplier invoices or stock sheets with clear columns.</p>
+                        <div class="bk-tip">
+                            <i class="bi bi-info-circle-fill me-1"></i>
+                            Columns are matched by header name first, then by position: Name → Buying Price → Selling Price → Quantity → Category → Expiry.
+                        </div>
+                    </div>
+
+                    {# Divider #}
+                    <div class="bk-panel__divider"></div>
+
+                    {# Pricing Logic #}
+                    <div class="bk-panel__section">
+                        <p class="bk-panel__label">PRICING LOGIC</p>
+                        <div class="bk-rule">
+                            <i class="bi bi-graph-up-arrow text-danger me-2"></i>
+                            If <code>selling_price</code> is blank or zero, the system auto-applies a <strong class="text-danger">25% markup</strong> over buying price.
+                        </div>
+                    </div>
+
+                    {# Stress-proof badge #}
+                    <div class="bk-panel__footer">
+                        <i class="bi bi-shield-fill-check me-2 text-danger"></i>
+                        Corrupt or empty rows are skipped automatically — valid rows always import.
                     </div>
                 </div>
             </div>
+
         </div>
     </div>
 </div>
 
-<style>
-    :root { --primary-color: #0d6efd; }
-    .pointer { cursor: pointer; }
-    .transition-all { transition: all 0.25s ease-in-out; }
-    .border-dashed { border: 2px dashed #dee2e6 !important; }
-    
-    .upload-box:hover {
-        border-color: var(--primary-color) !important;
-        background-color: rgba(13, 110, 253, 0.02) !important;
-        transform: translateY(-2px);
-    }
 
-    .icon-circle {
-        width: 80px;
-        height: 80px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 50%;
-    }
-
-    .tracking-wider { letter-spacing: 0.05rem; }
-    .animate__animated { animation-duration: 0.6s; }
-</style>
-
+{# ══════════════════════════════════════════════════════
+   JAVASCRIPT
+══════════════════════════════════════════════════════ #}
 <script>
-    const fileInput = document.getElementById('file');
-    const dropArea = document.getElementById('drop-area');
-    const fileInfo = document.getElementById('file-info');
-    const fileName = document.getElementById('file-name');
-    const form = document.getElementById('uploadForm');
-    const submitBtn = document.getElementById('submitBtn');
+(function () {
+    const dropZone   = document.getElementById('dropZone');
+    const fileInput  = document.getElementById('file');
+    const idleState  = document.getElementById('idleState');
+    const selState   = document.getElementById('selectedState');
+    const fileCard   = document.getElementById('fileCard');
+    const fileIcon   = document.getElementById('fileIcon');
+    const fileNameEl = document.getElementById('fileName');
+    const fileSizeEl = document.getElementById('fileSize');
+    const removeBtn  = document.getElementById('removeFile');
+    const dragOverlay= document.getElementById('dragOverlay');
+    const form       = document.getElementById('uploadForm');
+    const submitBtn  = document.getElementById('submitBtn');
+    const submitInner  = document.getElementById('submitInner');
+    const submitLoading= document.getElementById('submitLoading');
 
-    // Display filename when selected
-    fileInput.onchange = function() {
-        if (fileInput.files.length > 0) {
-            fileInfo.classList.remove('d-none');
-            fileName.innerHTML = `<i class="bi bi-file-earmark-check me-1"></i> ${fileInput.files[0].name}`;
-            dropArea.classList.add('bg-white');
+    function formatBytes(bytes) {
+        if (bytes < 1024)       return bytes + ' B';
+        if (bytes < 1048576)    return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / 1048576).toFixed(1) + ' MB';
+    }
+
+    function showFile(file) {
+        const ext = file.name.split('.').pop().toLowerCase();
+        fileNameEl.textContent = file.name;
+        fileSizeEl.textContent = formatBytes(file.size);
+
+        // Icon colour by type
+        fileIcon.className = 'bk-file-card__icon';
+        if (ext === 'csv') {
+            fileIcon.classList.add('bk-file-card__icon--csv');
+            fileIcon.innerHTML = '<i class="bi bi-filetype-csv"></i>';
+        } else {
+            fileIcon.classList.add('bk-file-card__icon--pdf');
+            fileIcon.innerHTML = '<i class="bi bi-file-earmark-pdf-fill"></i>';
         }
-    };
 
-    // Form submission UI change
-    form.onsubmit = function() {
+        idleState.classList.add('d-none');
+        selState.classList.remove('d-none');
+    }
+
+    function clearFile() {
+        fileInput.value = '';
+        idleState.classList.remove('d-none');
+        selState.classList.add('d-none');
+    }
+
+    // File input change
+    fileInput.addEventListener('change', function () {
+        if (fileInput.files.length > 0) showFile(fileInput.files[0]);
+    });
+
+    // Remove button — must stop propagation so it doesn't re-open the picker
+    removeBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        e.preventDefault();
+        clearFile();
+    });
+
+    // Drag & drop
+    ['dragenter', 'dragover'].forEach(evt => {
+        dropZone.addEventListener(evt, function (e) {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+    });
+    ['dragleave', 'dragend', 'drop'].forEach(evt => {
+        dropZone.addEventListener(evt, function (e) {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+        });
+    });
+    dropZone.addEventListener('drop', function (e) {
+        const files = e.dataTransfer.files;
+        if (!files.length) return;
+
+        const file = files[0];
+        const ext  = file.name.split('.').pop().toLowerCase();
+        if (!['csv', 'pdf'].includes(ext)) {
+            alert('Unsupported file type. Please upload a .CSV or .PDF file.');
+            return;
+        }
+
+        // Assign to the real input via DataTransfer
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        fileInput.files = dt.files;
+        showFile(file);
+    });
+
+    // Form submit — loading state
+    form.addEventListener('submit', function (e) {
+        if (!fileInput.files.length) {
+            e.preventDefault();
+            dropZone.style.borderColor = 'var(--red)';
+            dropZone.style.boxShadow   = '0 0 0 6px var(--red-glow)';
+            setTimeout(() => {
+                dropZone.style.borderColor = '';
+                dropZone.style.boxShadow   = '';
+            }, 1200);
+            return;
+        }
         submitBtn.disabled = true;
-        submitBtn.innerHTML = `
-            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-            Syncing Inventory Data...
-        `;
-        submitBtn.classList.replace('btn-primary', 'btn-secondary');
-    };
+        submitInner.classList.add('d-none');
+        submitLoading.classList.remove('d-none');
+    });
+})();
 </script>
 {% endblock %}

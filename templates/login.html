@@ -1,6 +1,63 @@
 {% extends "base.html" %}
+{% set show_nav = false %}
 
 {% block title %}Sign-In | BizTool POS Pro{% endblock %}
+
+{% block style %}
+<style>
+    /* ── Login-specific styles aligned with theme tokens ── */
+    .login-input-wrapper {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+    .login-icon-addon {
+        position: absolute;
+        top: 50%;
+        left: 1.25rem;
+        transform: translateY(-50%);
+        color: var(--ink-muted);
+        font-size: 1.1rem;
+        transition: color var(--t);
+        z-index: 4;
+    }
+    .login-custom-input {
+        padding-left: 3rem !important;
+        height: 54px;
+        border-radius: var(--r-md) !important;
+        transition: all var(--t) !important;
+    }
+    .login-custom-input:focus + .login-icon-addon {
+        color: var(--red);
+    }
+    .glass-card-overlay {
+        background: rgba(15, 23, 42, 0.45);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: var(--r-lg);
+    }
+    .btn-emerald-premium {
+        background: linear-gradient(135deg, var(--green-dark) 0%, #047857 100%);
+        color: #ffffff;
+        border: none;
+        height: 54px;
+        box-shadow: 0 4px 14px var(--green-glow);
+        transition: all var(--t);
+    }
+    .btn-emerald-premium:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px var(--green-glow);
+        color: #ffffff;
+        opacity: 0.95;
+    }
+    .brand-accent-glow {
+        font-family: var(--font-display);
+        font-weight: 800;
+        background: linear-gradient(130deg, #ff3b3b 0%, var(--red) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="container-fluid min-vh-100 d-flex p-0 overflow-hidden">
@@ -8,49 +65,81 @@
          style="background-color: #0f172a;">
         
         <div class="position-absolute top-0 start-0 w-100 h-100" 
-             style="background: linear-gradient(rgba(15, 23, 42, 0.7), rgba(15, 23, 42, 0.95)); z-index: 2;">
+             style="background: linear-gradient(rgba(15, 23, 42, 0.65), rgba(15, 23, 42, 0.92)); z-index: 2;">
         </div>
 
         <img src="{{ url_for('static', filename='loginpage.png') }}" alt="African Professionals in Retail" class="img-fluid position-relative" style="object-fit: cover; width: 100%; height: 100%; z-index: 1;">
         
+        <div class="position-absolute top-0 start-0 p-5 z-index-3">
+            <div class="glass-card-overlay px-3 py-2 d-inline-flex align-items-center gap-2">
+                <span class="page-eyebrow-dot"></span>
+                <small class="text-white fw-bold tracking-wider text-uppercase" style="font-size: 0.68rem; letter-spacing: 0.12em;">System Online</small>
+            </div>
+        </div>
+
         <div class="position-absolute bottom-0 start-0 w-100 p-5 z-index-3 text-white">
-            <h1 class="display-4 fw-bolder tracking-tight mb-2">Efficiency Accelerated.</h1>
+            <h1 class="display-4 fw-bolder tracking-tight mb-2" style="font-family: var(--font-display); letter-spacing: -0.03em;">Efficiency Accelerated.</h1>
             <p class="lead opacity-75 mb-0">BizTool POS: Powerful. Modern. Kenyan.</p>
         </div>
     </div>
 
-    <div class="col-md-5 d-flex align-items-center justify-content-center bg-white px-5 shadow-lg" style="z-index: 10;">
-        <div class="form-wrapper px-4 px-lg-5 w-100" style="max-width: 480px;">
-            <div class="text-center mb-5">
-                <i class="bi bi-lightning-charge text-emerald fs-1 mb-2"></i>
-                <h3 class="fw-bolder tracking-tight">Access Your Terminal</h3>
-                <p class="text-muted small">Enter your credentials to manage your store</p>
+    <div class="col-md-5 d-flex align-items-center justify-content-center bg-white px-4 px-lg-5 shadow-lg position-relative" style="z-index: 3;">
+        <div class="w-100" style="max-width: 420px;" data-stagger>
+            
+            <div class="text-center text-md-start mb-4">
+                <div class="d-flex align-items-center justify-content-center justify-content-md-start gap-2 mb-2">
+                    <div class="brand-icon" style="width: 32px; height: 32px; background: var(--red); border-radius: var(--r-sm); display: flex; align-items: center; justify-content: center; color: white;">
+                        <i class="bi bi-lightning-charge-fill"></i>
+                    </div>
+                    <span class="fs-4 brand-accent-glow">BizTool POS Pro</span>
+                </div>
+                <h3 class="fw-extrabold text-dark tracking-tight mb-1" style="font-family: var(--font-display); font-weight: 800;">Secure Terminal</h3>
+                <p class="text-muted small mb-0">Enter your credentials to manage your store</p>
             </div>
             
             {% with messages = get_flashed_messages() %}
                 {% if messages %}
-                <div class="alert alert-warning border-0 rounded-3 shadow-sm">{{ messages[0] }}</div>
+                <div class="alert alert-warning border-0 rounded-3 shadow-sm d-flex align-items-center gap-2 small py-3 px-4 mb-4" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill text-amber fs-5"></i>
+                    <div>{{ messages[0] }}</div>
+                </div>
                 {% endif %}
             {% endwith %}
 
-            <form method="POST">
-                <div class="mb-4">
-                    <label class="form-label small fw-bold text-muted text-uppercase">Username</label>
-                    <input type="text" name="username" class="form-control form-control-lg bg-light border-0 shadow-none px-4" placeholder="Enter username" required autofocus>
+            <form method="POST" class="needs-validation" novalidate>
+                <div class="biz-form-group">
+                    <label class="biz-label">Username</label>
+                    <div class="login-input-wrapper">
+                        <input type="text" name="username" class="biz-input login-custom-input" placeholder="Enter your username" required autofocus autocomplete="username">
+                        <i class="bi bi-person login-icon-addon"></i>
+                    </div>
                 </div>
                 
-                <div class="mb-4">
-                    <label class="form-label small fw-bold text-muted text-uppercase">Password</label>
-                    <input type="password" name="password" class="form-control form-control-lg bg-light border-0 shadow-none px-4" placeholder="••••••••" required>
+                <div class="biz-form-group">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <label class="biz-label mb-0">Password</label>
+                    </div>
+                    <div class="login-input-wrapper">
+                        <input type="password" name="password" class="biz-input login-custom-input" placeholder="••••••••" required autocomplete="current-password">
+                        <i class="bi bi-lock login-icon-addon"></i>
+                    </div>
                 </div>
                 
-                <button class="btn btn-emerald btn-lg w-100 py-3 fw-bold rounded-pill mt-3">
-                    Complete Sign-In
+                <div class="d-flex justify-content-between align-items-center mb-4 small">
+                    <div class="form-check d-flex align-items-center gap-1">
+                        <input class="form-check-input mt-0 border-strong" type="checkbox" id="rememberMe" style="cursor: pointer;">
+                        <label class="form-check-label text-muted fw-medium" for="rememberMe" style="cursor: pointer; user-select: none;">Keep terminal signed in</label>
+                    </div>
+                </div>
+                
+                <button type="submit" class="biz-btn btn-emerald-premium w-full py-3 fw-bold rounded-pill mt-2">
+                    <span>Complete Sign-In</span>
+                    <i class="bi bi-arrow-right-short fs-5"></i>
                 </button>
             </form>
 
-            <div class="mt-5 text-center text-muted smaller opacity-75">
-                © 2026 BizTool POS Pro &bull; Validating African Growth
+            <div class="mt-5 text-center text-md-start text-muted smaller opacity-75 pt-3 border-top border-light">
+                &copy; 2026 BizTool POS Pro &bull; Validating African Growth
             </div>
         </div>
     </div>

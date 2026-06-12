@@ -1,33 +1,363 @@
-{% extends "base.html" %}
-{% block content %}
-<div class="container mt-4">
-  <h2>Clients</h2>
+{% extends 'base.html' %}
+{% block title %}Clients — BizTool POS{% endblock %}
 
-  <form method="POST" class="row g-2 mb-3">
-    <div class="col-md-3"><input name="name" class="form-control" placeholder="Client name" required></div>
-    <div class="col-md-3"><input name="phone" class="form-control" placeholder="Phone"></div>
-    <div class="col-md-3"><input name="email" class="form-control" placeholder="Email"></div>
-    <div class="col-md-3"><button class="btn btn-primary w-100">Add Client</button></div>
+{% block head %}
+<style>
+/* ═══════════════════════════════════════════════
+   CLIENTS PAGE  ·  White / Red / Black
+═══════════════════════════════════════════════ */
+.cl-header {
+  background:linear-gradient(135deg,#0e0e0e 0%,#1a0000 100%);
+  border-radius:var(--r-lg); padding:1.75rem 2.25rem;
+  display:flex; align-items:center; justify-content:space-between;
+  gap:1.5rem; margin-bottom:1.25rem;
+  border:1.5px solid rgba(220,38,38,0.25);
+  position:relative; overflow:hidden;
+  animation:card-in .4s var(--ease) both;
+}
+.cl-header::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse 55% 80% at 0% 60%,rgba(220,38,38,0.14) 0%,transparent 60%); pointer-events:none; }
+.cl-header-left  { position:relative;z-index:1; }
+.cl-header-right { position:relative;z-index:1;display:flex;gap:.6rem;flex-wrap:wrap; }
+.cl-title { font-family:var(--font-display);font-size:1.5rem;font-weight:800;color:#fff;letter-spacing:-0.03em;margin:0 0 .25rem; }
+.cl-title span { color:#ef4444; }
+.cl-sub   { font-size:.82rem;color:rgba(255,255,255,0.4);margin:0; }
+
+/* Stats */
+.cl-stats { display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:1rem;margin-bottom:1.5rem; }
+.cl-stat  {
+  background:#fff;border:1.5px solid #e8e8e8;border-radius:var(--r-lg);
+  padding:1.1rem 1.25rem;position:relative;overflow:hidden;
+  box-shadow:0 2px 8px rgba(0,0,0,0.05);
+  animation:card-in .4s var(--ease) both;
+  transition:transform var(--t),box-shadow var(--t),border-color var(--t);
+}
+.cl-stat::before { content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--cl-accent,#ef4444); }
+.cl-stat:hover   { transform:translateY(-4px);box-shadow:0 10px 24px rgba(0,0,0,0.1);border-color:var(--cl-accent,#ef4444); }
+.cl-stat-icon  { width:36px;height:36px;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;font-size:.95rem;margin-bottom:.3rem; }
+.cl-stat-label { font-size:.63rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#9ca3af; }
+.cl-stat-value { font-family:var(--font-display);font-size:1.45rem;font-weight:800;color:#111;letter-spacing:-0.025em; }
+
+/* Filter bar */
+.cl-filters {
+  background:#fff;border:1.5px solid #e2e8f0;border-radius:var(--r-lg);
+  padding:.85rem 1.25rem;display:flex;flex-wrap:wrap;gap:.65rem;
+  align-items:flex-end;margin-bottom:1.25rem;
+  box-shadow:0 2px 8px rgba(0,0,0,0.04);
+  animation:card-in .4s .06s var(--ease) both;
+}
+.cl-filter-input { padding:.44rem .85rem;border:1.5px solid #e2e8f0;border-radius:var(--r-sm);font-size:.84rem;color:#111;background:#f8fafc;outline:none;transition:border-color var(--t);font-family:var(--font-body);flex:1;min-width:180px; }
+.cl-filter-input:focus { border-color:#ef4444;background:#fff; }
+.cl-filter-btn    { padding:.48rem 1.1rem;border-radius:var(--r-sm);border:none;font-size:.84rem;font-weight:700;cursor:pointer;transition:all var(--t);display:inline-flex;align-items:center;gap:.38rem;background:#ef4444;color:#fff; }
+.cl-filter-btn:hover { background:#dc2626; }
+.cl-filter-btn.ghost { background:#fff;color:#6b7280;border:1.5px solid #e2e8f0; }
+.cl-filter-btn.ghost:hover { border-color:#ef4444;color:#ef4444; }
+
+/* Client cards grid */
+.cl-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1.1rem;margin-bottom:1.5rem; }
+.cl-card {
+  background:#fff;border:1.5px solid #e8e8e8;border-radius:var(--r-lg);
+  padding:1.25rem 1.4rem;
+  box-shadow:0 2px 8px rgba(0,0,0,0.04);
+  transition:transform var(--t),box-shadow var(--t),border-color var(--t);
+  animation:card-in .4s var(--ease) both;
+  position:relative;overflow:hidden;
+}
+.cl-card:hover { transform:translateY(-4px);box-shadow:0 12px 32px rgba(0,0,0,0.1);border-color:#ef4444; }
+.cl-card-top  { display:flex;align-items:flex-start;gap:.85rem;margin-bottom:.85rem; }
+.cl-avatar    { width:44px;height:44px;border-radius:50%;background:#ef4444;display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:800;color:#fff;flex-shrink:0; }
+.cl-name      { font-weight:800;color:#111;font-size:.97rem;margin-bottom:.15rem; }
+.cl-phone     { font-size:.78rem;color:#6b7280; }
+.cl-badges    { display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.85rem; }
+.cl-badge     { display:inline-flex;align-items:center;gap:.28rem;padding:.2rem .65rem;border-radius:99px;font-size:.7rem;font-weight:700; }
+.cl-badge-gold   { background:rgba(245,158,11,0.12);color:#d97706;border:1px solid rgba(245,158,11,0.25); }
+.cl-badge-red    { background:rgba(239,68,68,0.1);color:#dc2626;border:1px solid rgba(239,68,68,0.2); }
+.cl-badge-green  { background:rgba(16,185,129,0.1);color:#059669;border:1px solid rgba(16,185,129,0.2); }
+.cl-badge-gray   { background:#f1f5f9;color:#6b7280; }
+.cl-stats-row { display:flex;gap:.5rem;margin-bottom:.85rem; }
+.cl-mini-stat { flex:1;background:#f8fafc;border-radius:var(--r-sm);padding:.5rem .65rem;text-align:center; }
+.cl-mini-label { font-size:.6rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#9ca3af; }
+.cl-mini-value { font-family:var(--font-display);font-size:.95rem;font-weight:800;color:#111; }
+.cl-actions   { display:flex;gap:.4rem; }
+.cl-btn       { flex:1;display:inline-flex;align-items:center;justify-content:center;gap:.35rem;padding:.42rem .8rem;border-radius:var(--r-sm);font-size:.78rem;font-weight:700;border:1.5px solid;cursor:pointer;transition:all var(--t);text-decoration:none; }
+.cl-btn-view  { background:#fff;border-color:#e2e8f0;color:#374151; }
+.cl-btn-view:hover { border-color:#ef4444;color:#ef4444; }
+.cl-btn-red   { background:#ef4444;border-color:#ef4444;color:#fff; }
+.cl-btn-red:hover { background:#dc2626; }
+
+/* Empty state */
+.cl-empty { text-align:center;padding:4rem 1rem;color:#9ca3af;background:#fff;border:1.5px solid #e8e8e8;border-radius:var(--r-lg); }
+.cl-empty i { font-size:2.5rem;display:block;margin-bottom:.75rem;opacity:.3;color:#ef4444; }
+
+/* Modals */
+.biz-modal .modal-content { background:#fff;border:none;border-radius:var(--r-lg);box-shadow:0 24px 64px rgba(0,0,0,0.15); }
+.biz-modal .modal-header  { background:#0a0a0a;border-bottom:2px solid #ef4444;padding:1.1rem 1.4rem; }
+.biz-modal .modal-title   { font-family:var(--font-display);font-weight:700;font-size:1rem;color:#fff; }
+.biz-modal .modal-body    { padding:1.4rem; }
+.biz-modal .modal-footer  { padding:1rem 1.4rem;border-top:1px solid #f1f5f9;gap:.5rem; }
+.biz-form-label { font-size:.78rem;font-weight:700;color:#374151;display:block;margin-bottom:.3rem; }
+.biz-form-label .req { color:#ef4444; }
+.biz-form-input { width:100%;padding:.48rem .9rem;border:1.5px solid #e2e8f0;border-radius:var(--r-sm);font-size:.84rem;color:#111;background:#f8fafc;outline:none;transition:border-color var(--t);font-family:var(--font-body); }
+.biz-form-input:focus { border-color:#ef4444;background:#fff; }
+.biz-form-row   { display:grid;grid-template-columns:1fr 1fr;gap:.75rem; }
+.biz-form-group { margin-bottom:.9rem; }
+@media(max-width:520px){ .biz-form-row{grid-template-columns:1fr;} .cl-grid{grid-template-columns:1fr;} }
+</style>
+{% endblock %}
+
+
+{% block content %}
+<div class="container-fluid px-3 py-3" style="max-width:1200px;margin:auto">
+
+  <!-- PAGE HEADER -->
+  <div class="cl-header">
+    <div class="cl-header-left">
+      <h1 class="cl-title"><i class="bi bi-person-lines-fill" style="color:#ef4444;margin-right:.3rem"></i>Client <span>Accounts</span></h1>
+      <p class="cl-sub">Manage customers, loyalty points, and credit accounts.</p>
+    </div>
+    <div class="cl-header-right">
+      <button class="biz-btn biz-btn-danger" data-bs-toggle="modal" data-bs-target="#addClientModal">
+        <i class="bi bi-person-plus-fill"></i> Add Client
+      </button>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="cl-stats">
+    <div class="cl-stat" style="--cl-accent:#ef4444">
+      <div class="cl-stat-icon" style="background:rgba(239,68,68,0.1);color:#ef4444"><i class="bi bi-people-fill"></i></div>
+      <div class="cl-stat-label">Total Clients</div>
+      <div class="cl-stat-value">{{ total_clients }}</div>
+    </div>
+    <div class="cl-stat" style="--cl-accent:#f59e0b">
+      <div class="cl-stat-icon" style="background:rgba(245,158,11,0.1);color:#f59e0b"><i class="bi bi-star-fill"></i></div>
+      <div class="cl-stat-label">Loyalty Points Issued</div>
+      <div class="cl-stat-value" style="color:#d97706">{{ "{:,}".format(total_points) }}</div>
+    </div>
+    <div class="cl-stat" style="--cl-accent:#3b82f6">
+      <div class="cl-stat-icon" style="background:rgba(59,130,246,0.1);color:#3b82f6"><i class="bi bi-credit-card-fill"></i></div>
+      <div class="cl-stat-label">Credit Accounts</div>
+      <div class="cl-stat-value" style="color:#3b82f6">{{ credit_clients }}</div>
+    </div>
+    <div class="cl-stat" style="--cl-accent:{{ '#ef4444' if total_credit_owed > 0 else '#10b981' }}">
+      <div class="cl-stat-icon" style="background:rgba({% if total_credit_owed > 0 %}239,68,68{% else %}16,185,129{% endif %},0.1);color:{{ '#ef4444' if total_credit_owed > 0 else '#10b981' }}"><i class="bi bi-wallet2"></i></div>
+      <div class="cl-stat-label">Total Credit Owed</div>
+      <div class="cl-stat-value" style="color:{{ '#ef4444' if total_credit_owed > 0 else '#10b981' }};font-size:1.1rem">KES {{ "{:,.0f}".format(total_credit_owed) }}</div>
+    </div>
+  </div>
+
+  <!-- SEARCH -->
+  <form method="GET" action="{{ url_for('clients') }}">
+    <div class="cl-filters">
+      <input type="text" name="search" class="cl-filter-input" placeholder="Search by name or phone…" value="{{ search }}">
+      <button type="submit" class="cl-filter-btn"><i class="bi bi-search"></i> Search</button>
+      {% if search %}<a href="{{ url_for('clients') }}" class="cl-filter-btn ghost"><i class="bi bi-x"></i> Clear</a>{% endif %}
+    </div>
   </form>
 
-  <table class="table table-bordered">
-    <thead><tr><th>ID</th><th>Name</th><th>Phone</th><th>Email</th><th>Created</th><th>Action</th></tr></thead>
-    <tbody>
-      {% for c in clients %}
-      <tr>
-        <td>{{ c.id }}</td>
-        <td>{{ c.name }}</td>
-        <td>{{ c.phone or '' }}</td>
-        <td>{{ c.email or '' }}</td>
-        <td>{{ c.created_at.strftime("%Y-%m-%d") }}</td>
-        <td><a href="{{ url_for('client_statement', client_id=c.id) }}" class="btn btn-sm btn-info">Statement</a></td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
-<div>
-<a href="{{ url_for('dashboard') }}" class="btn btn-secondary mb-3">Back to dashboard</a>
+  <!-- CLIENT CARDS -->
+  {% if clients %}
+  <div class="cl-grid">
+    {% for c in clients %}
+    <div class="cl-card" data-stagger>
+      <div class="cl-card-top">
+        <div class="cl-avatar">{{ c.name[0] | upper }}</div>
+        <div style="flex:1;min-width:0">
+          <div class="cl-name">{{ c.name }}</div>
+          <div class="cl-phone">
+            {% if c.phone %}<i class="bi bi-telephone" style="font-size:.7rem"></i> {{ c.phone }}{% endif %}
+            {% if c.email %}&nbsp;<i class="bi bi-envelope" style="font-size:.7rem"></i> {{ c.email }}{% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="cl-badges">
+        {% if c.loyalty_points and c.loyalty_points > 0 %}
+        <span class="cl-badge cl-badge-gold">
+          <i class="bi bi-star-fill"></i> {{ "{:,}".format(c.loyalty_points) }} pts
+        </span>
+        {% endif %}
+        {% if c.credit_enabled %}
+          {% if c.credit_balance and c.credit_balance > 0 %}
+          <span class="cl-badge cl-badge-red">
+            <i class="bi bi-wallet2"></i> Owes KES {{ "{:,.0f}".format(c.credit_balance) }}
+          </span>
+          {% else %}
+          <span class="cl-badge cl-badge-green">
+            <i class="bi bi-check-circle-fill"></i> Credit OK
+          </span>
+          {% endif %}
+        {% endif %}
+        {% if c.total_spent and c.total_spent > 0 %}
+        <span class="cl-badge cl-badge-gray">
+          KES {{ "{:,.0f}".format(c.total_spent) }} spent
+        </span>
+        {% endif %}
+      </div>
+
+      <div class="cl-stats-row">
+        <div class="cl-mini-stat">
+          <div class="cl-mini-label">Pts Balance</div>
+          <div class="cl-mini-value" style="color:#d97706">{{ c.loyalty_points or 0 }}</div>
+        </div>
+        <div class="cl-mini-stat">
+          <div class="cl-mini-label">Credit Limit</div>
+          <div class="cl-mini-value" style="color:#3b82f6">
+            {% if c.credit_enabled %}KES {{ "{:,.0f}".format(c.credit_limit or 0) }}{% else %}—{% endif %}
+          </div>
+        </div>
+        <div class="cl-mini-stat">
+          <div class="cl-mini-label">Balance Due</div>
+          <div class="cl-mini-value" style="color:{{ '#ef4444' if c.credit_balance and c.credit_balance > 0 else '#10b981' }}">
+            {% if c.credit_balance and c.credit_balance > 0 %}KES {{ "{:,.0f}".format(c.credit_balance) }}{% else %}Clear{% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="cl-actions">
+        <a href="{{ url_for('client_detail', client_id=c.id) }}" class="cl-btn cl-btn-view">
+          <i class="bi bi-eye"></i> View
+        </a>
+        {% if c.credit_enabled and c.credit_balance and c.credit_balance > 0 %}
+        <button class="cl-btn cl-btn-red"
+                onclick="openPayCredit({{ c.id }}, '{{ c.name | e }}', {{ c.credit_balance }})">
+          <i class="bi bi-cash-coin"></i> Pay Credit
+        </button>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <div class="cl-empty">
+    <i class="bi bi-person-x"></i>
+    <div style="font-weight:700;color:#374151;font-size:1rem;margin-bottom:.35rem">
+      {% if search %}No clients match "{{ search }}"{% else %}No clients yet{% endif %}
+    </div>
+    <p>{% if search %}Try a different search term.{% else %}Add your first client using the button above.{% endif %}</p>
+  </div>
+  {% endif %}
+
 </div>
 
+
+<!-- ADD CLIENT MODAL -->
+<div class="modal fade biz-modal" id="addClientModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-person-plus-fill me-2" style="color:#ef4444"></i>Add Client</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="{{ url_for('clients') }}">
+        <input type="hidden" name="action" value="add">
+        <div class="modal-body">
+
+          <div class="biz-form-group">
+            <label class="biz-form-label">Full Name <span class="req">*</span></label>
+            <input type="text" name="name" class="biz-form-input" placeholder="e.g. Jane Wanjiku" required>
+          </div>
+
+          <div class="biz-form-row">
+            <div class="biz-form-group">
+              <label class="biz-form-label">Phone</label>
+              <input type="text" name="phone" class="biz-form-input" placeholder="07xx xxx xxx">
+            </div>
+            <div class="biz-form-group">
+              <label class="biz-form-label">Email</label>
+              <input type="email" name="email" class="biz-form-input">
+            </div>
+          </div>
+
+          <div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:var(--r-sm);padding:1rem;margin-bottom:.9rem">
+            <div style="font-size:.78rem;font-weight:700;color:#374151;margin-bottom:.65rem">
+              <i class="bi bi-credit-card" style="color:#3b82f6;margin-right:.3rem"></i>Credit Account
+            </div>
+            <div style="display:flex;align-items:center;gap:.65rem;margin-bottom:.65rem">
+              <input type="checkbox" name="credit_enabled" value="1" id="addCreditEnabled"
+                     onchange="document.getElementById('addCreditLimitWrap').style.display=this.checked?'block':'none'">
+              <label for="addCreditEnabled" style="font-size:.84rem;color:#374151;cursor:pointer;margin:0">Enable credit account for this client</label>
+            </div>
+            <div id="addCreditLimitWrap" style="display:none">
+              <label class="biz-form-label">Credit Limit (KES)</label>
+              <input type="number" name="credit_limit" class="biz-form-input" placeholder="e.g. 5000" min="0" step="0.01">
+            </div>
+          </div>
+
+          <div style="background:#fffbeb;border:1.5px solid rgba(245,158,11,0.25);border-radius:var(--r-sm);padding:.75rem 1rem;font-size:.78rem;color:#92400e">
+            <i class="bi bi-star-fill" style="color:#f59e0b;margin-right:.3rem"></i>
+            Loyalty points are earned automatically at checkout — <strong>1 point per KES 10 spent</strong>.
+            Points can be redeemed at KES 0.50 per point (minimum 100 points).
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="biz-btn biz-btn-ghost" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="biz-btn biz-btn-danger"><i class="bi bi-check-circle-fill"></i> Add Client</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<!-- PAY CREDIT MODAL -->
+<div class="modal fade biz-modal" id="payCreditModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-cash-coin me-2" style="color:#10b981"></i>Record Credit Payment</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="payCreditForm" method="POST" action="">
+        <div class="modal-body">
+          <p style="font-size:.83rem;color:#6b7280;margin-bottom:.85rem">
+            Client: <strong id="payCreditName"></strong><br>
+            Balance due: <strong id="payCreditBalance" style="color:#ef4444"></strong>
+          </p>
+          <div class="biz-form-group">
+            <label class="biz-form-label">Amount (KES) <span class="req">*</span></label>
+            <input type="number" name="amount" id="payCreditAmount" class="biz-form-input" min="0.01" step="0.01" required>
+          </div>
+          <div class="biz-form-row">
+            <div class="biz-form-group">
+              <label class="biz-form-label">Method</label>
+              <select name="method" class="biz-form-input">
+                <option value="Cash">Cash</option>
+                <option value="Mpesa">M-Pesa</option>
+                <option value="Bank">Bank Transfer</option>
+              </select>
+            </div>
+            <div class="biz-form-group">
+              <label class="biz-form-label">Reference</label>
+              <input type="text" name="reference" class="biz-form-input" placeholder="Transaction ref…">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="biz-btn biz-btn-ghost" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="biz-btn biz-btn-danger"><i class="bi bi-check-circle-fill"></i> Confirm Payment</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+
+{% block scripts %}
+<script>
+function openPayCredit(clientId, clientName, balance) {
+  document.getElementById('payCreditName').textContent    = clientName;
+  document.getElementById('payCreditBalance').textContent = 'KES ' + balance.toFixed(2);
+  document.getElementById('payCreditAmount').value        = balance.toFixed(2);
+  document.getElementById('payCreditAmount').max          = balance;
+  document.getElementById('payCreditForm').action         = '/clients/' + clientId + '/pay-credit';
+  new bootstrap.Modal(document.getElementById('payCreditModal')).show();
+}
+
+document.querySelectorAll('[data-stagger]').forEach(function(el, i) {
+  el.style.animationDelay = (i * 0.045) + 's';
+});
+</script>
 {% endblock %}

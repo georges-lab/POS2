@@ -2,227 +2,10 @@
 {% block title %}Inventory - BizTool POS{% endblock %}
 
 {% block head %}
-<!-- Preconnect for faster font load -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
-<style>
-    /* Hide the page until fonts + our styles are fully ready — eliminates FOUC */
-    .inv-wrapper { visibility: hidden; opacity: 0; }
-</style>
-{% endblock %}
 
-{% block content %}
-
-<div class="inv-wrapper">
-
-    <!-- ===== HERO HEADER ===== -->
-    <div class="inv-header">
-        <div class="inv-header-left">
-            <div class="inv-title-group">
-                <span class="inv-eyebrow">
-                    <span class="inv-eyebrow-dot"></span>
-                    Live Inventory
-                </span>
-                <h1 class="inv-title">Product <span class="inv-title-accent">Catalog</span></h1>
-                <p class="inv-subtitle">Real-time stock management &amp; instant cart addition</p>
-            </div>
-        </div>
-        <div class="inv-header-right">
-            <a href="{{ url_for('cart') }}" class="inv-btn inv-btn-primary">
-                <i class="bi bi-cart3"></i>
-                View Cart
-            </a>
-            {% if is_admin %}
-            <a href="{{ url_for('upload_products') }}" class="inv-btn inv-btn-ghost">
-                <i class="bi bi-cloud-arrow-up-fill"></i>
-                Upload List
-            </a>
-            <a href="{{ url_for('add_product') }}" class="inv-btn inv-btn-accent">
-                <i class="bi bi-plus-circle-dotted"></i>
-                New Product
-            </a>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- ===== SEARCH BAR ===== -->
-    <div class="inv-search-wrap">
-        <form method="get" action="{{ url_for('products') }}" class="inv-search-form">
-            <div class="inv-search-inner">
-                <i class="bi bi-search inv-search-icon"></i>
-                <input
-                    type="text"
-                    name="search"
-                    class="inv-search-input"
-                    placeholder="Search by product name or category…"
-                    value="{{ search_query or '' }}"
-                    autocomplete="off"
-                >
-                {% if search_query %}
-                <a href="{{ url_for('products') }}" class="inv-search-clear" title="Clear search">
-                    <i class="bi bi-x-lg"></i>
-                </a>
-                {% endif %}
-            </div>
-            <button type="submit" class="inv-search-btn">
-                <i class="bi bi-arrow-right-short"></i>
-                Search
-            </button>
-        </form>
-    </div>
-
-    <!-- ===== PRODUCTS GRID ===== -->
-    <div class="inv-grid">
-        {% for product in products %}
-
-        {% set is_expired = product.expiry_date and product.expiry_date < today %}
-        {% set expires_soon = product.expiry_date and not is_expired and product.expiry_date <= today_plus_30 %}
-        {% set low_stock = product.quantity <= 5 %}
-        {% set out_of_stock = product.quantity < 1 %}
-
-        <div class="pcard {% if is_expired %}pcard--expired{% endif %}">
-
-            <!-- Top Bar: Category + Status badges -->
-            <div class="pcard__topbar">
-                <span class="pcard__category">{{ product.category or 'General' }}</span>
-                <div class="pcard__badges">
-                    {% if is_expired %}
-                        <span class="pcard__badge pcard__badge--danger">
-                            <i class="bi bi-exclamation-octagon-fill"></i> Expired
-                        </span>
-                    {% elif expires_soon %}
-                        <span class="pcard__badge pcard__badge--warn">
-                            <i class="bi bi-hourglass-split"></i> Expiring Soon
-                        </span>
-                    {% endif %}
-                    {% if out_of_stock %}
-                        <span class="pcard__badge pcard__badge--danger">
-                            <i class="bi bi-x-circle-fill"></i> Out of Stock
-                        </span>
-                    {% elif low_stock %}
-                        <span class="pcard__badge pcard__badge--warn">
-                            <i class="bi bi-exclamation-triangle-fill"></i> Low Stock
-                        </span>
-                    {% endif %}
-                </div>
-            </div>
-
-            <!-- Product Info -->
-            <div class="pcard__body">
-                <p class="pcard__id">SKU #{{ product.id }}</p>
-                <h3 class="pcard__name">{{ product.name }}</h3>
-
-                {% if product.expiry_date %}
-                <p class="pcard__expiry {% if is_expired %}pcard__expiry--bad{% elif expires_soon %}pcard__expiry--warn{% endif %}">
-                    <i class="bi bi-calendar-event me-1"></i>
-                    {% if is_expired %}
-                        Expired {{ product.expiry_date.strftime('%d %b %Y') }}
-                    {% elif expires_soon %}
-                        Expires {{ product.expiry_date.strftime('%d %b %Y') }}
-                    {% else %}
-                        Exp: {{ product.expiry_date.strftime('%d %b %Y') }}
-                    {% endif %}
-                </p>
-                {% endif %}
-
-                <!-- Price & Stock Row -->
-                <div class="pcard__meta">
-                    <div class="pcard__price-block">
-                        <span class="pcard__meta-label">Unit Price</span>
-                        <span class="pcard__price">Ksh {{ "{:,.2f}".format(product.selling_price or 0) }}</span>
-                    </div>
-                    <div class="pcard__stock-block">
-                        <span class="pcard__meta-label">Stock</span>
-                        <span class="pcard__stock {% if out_of_stock %}pcard__stock--none{% elif low_stock %}pcard__stock--low{% else %}pcard__stock--ok{% endif %}">
-                            {% if out_of_stock %}
-                                <i class="bi bi-x-circle-fill"></i> None
-                            {% elif low_stock %}
-                                <i class="bi bi-exclamation-triangle-fill"></i> {{ product.quantity }} left
-                            {% else %}
-                                <i class="bi bi-check-circle-fill"></i> {{ product.quantity }} units
-                            {% endif %}
-                        </span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ===== CART FORM — standalone, no nesting ===== -->
-            <div class="pcard__actions">
-                <form action="{{ url_for('add_to_cart', product_id=product.id) }}" method="POST" class="pcard__cart-form">
-                    <div class="pcard__qty-row">
-                        <label class="pcard__qty-label">QTY</label>
-                        <div class="pcard__qty-controls">
-                            <button type="button" class="qty-btn qty-btn--dec" onclick="adjustQty(this, -1)" {% if is_expired or out_of_stock %}disabled{% endif %}>
-                                <i class="bi bi-dash"></i>
-                            </button>
-                            <input
-                                type="number"
-                                name="quantity"
-                                class="pcard__qty-input"
-                                min="1"
-                                max="{{ product.quantity }}"
-                                value="1"
-                                {% if is_expired or out_of_stock %}disabled{% endif %}
-                            >
-                            <button type="button" class="qty-btn qty-btn--inc" onclick="adjustQty(this, 1)" {% if is_expired or out_of_stock %}disabled{% endif %}>
-                                <i class="bi bi-plus"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <button
-                        type="submit"
-                        class="pcard__cart-btn {% if is_expired or out_of_stock %}pcard__cart-btn--disabled{% endif %}"
-                        {% if out_of_stock or is_expired %}disabled{% endif %}
-                    >
-                        {% if is_expired %}
-                            <i class="bi bi-slash-circle"></i> Cannot Sell
-                        {% elif out_of_stock %}
-                            <i class="bi bi-x-circle"></i> Out of Stock
-                        {% else %}
-                            <i class="bi bi-cart-plus-fill"></i> Add to Cart
-                        {% endif %}
-                    </button>
-                </form>
-
-                <!-- ===== ADMIN ACTIONS — separate form, OUTSIDE the cart form ===== -->
-                {% if is_admin %}
-                <div class="pcard__admin-row">
-                    <a href="{{ url_for('edit_product', id=product.id) }}" class="pcard__admin-btn pcard__admin-btn--edit">
-                        <i class="bi bi-pencil-square"></i> Edit
-                    </a>
-                    <form
-                        action="{{ url_for('delete_product', id=product.id) }}"
-                        method="POST"
-                        class="pcard__delete-form"
-                        onsubmit="return confirm('Permanently delete \'{{ product.name }}\'? This cannot be undone.');"
-                    >
-                        <button type="submit" class="pcard__admin-btn pcard__admin-btn--delete">
-                            <i class="bi bi-trash-fill"></i> Delete
-                        </button>
-                    </form>
-                </div>
-                {% endif %}
-            </div>
-
-        </div>
-        {% else %}
-        <!-- Empty State -->
-        <div class="inv-empty">
-            <div class="inv-empty-icon"><i class="bi bi-search-heart"></i></div>
-            <h4 class="inv-empty-title">No products found</h4>
-            <p class="inv-empty-sub">Try adjusting your search, or add new products to the inventory.</p>
-            <a href="{{ url_for('products') }}" class="inv-btn inv-btn-primary mt-3">
-                <i class="bi bi-arrow-counterclockwise"></i> View All Inventory
-            </a>
-        </div>
-        {% endfor %}
-    </div>
-
-</div>
-
-<!-- ===== STYLES ===== -->
 <style>
 /* ---------- RESET / BASE ---------- */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -278,6 +61,8 @@ body { font-family: var(--font-body); color: var(--ink); background: var(--surfa
     margin: 0 auto;
     padding: 2.5rem 1.75rem 4rem;
     /* Revealed by JS once fonts are ready */
+    visibility: hidden; 
+    opacity: 0;
     transition: opacity 0.3s ease;
 }
 
@@ -300,13 +85,13 @@ body { font-family: var(--font-body); color: var(--ink); background: var(--surfa
     font-weight: 600;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: var(--green);
+    color: #f30808;
     margin-bottom: 0.6rem;
 }
 .inv-eyebrow-dot {
     width: 7px; height: 7px;
     border-radius: 50%;
-    background: var(--green);
+    background: #fc0404;
     animation: pulse-dot 2s ease-in-out infinite;
 }
 @keyframes pulse-dot {
@@ -323,7 +108,7 @@ body { font-family: var(--font-body); color: var(--ink); background: var(--surfa
     letter-spacing: -0.03em;
 }
 .inv-title-accent {
-    background: linear-gradient(135deg, var(--green) 0%, var(--blue) 100%);
+    background: linear-gradient(135deg, #f80505 0%, #dc2626 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -367,13 +152,12 @@ body { font-family: var(--font-body); color: var(--ink); background: var(--surfa
     color: #fff;
     box-shadow: var(--shadow-sm);
 }
-.inv-btn-primary:hover {
-    background: var(--green);
-    color: var(--ink);
-    box-shadow: 0 6px 20px var(--green-glow);
-    transform: translateY(-2px);
-}
 
+.inv-btn-primary:hover {
+    background: #f10404;
+    color: #fff;
+    box-shadow: 0 6px 20px rgba(220,38,38,0.25);
+}
 .inv-btn-ghost {
     background: var(--surface);
     color: var(--ink);
@@ -387,13 +171,14 @@ body { font-family: var(--font-body); color: var(--ink); background: var(--surfa
 }
 
 .inv-btn-accent {
-    background: linear-gradient(135deg, var(--blue) 0%, var(--accent) 100%);
+    background: #f30404;
     color: #fff;
-    box-shadow: 0 4px 14px var(--blue-glow);
+    box-shadow: 0 4px 14px rgba(220,38,38,0.3);
 }
 .inv-btn-accent:hover {
+    background: #dc2626;
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px var(--blue-glow);
+    box-shadow: 0 8px 24px rgba(220,38,38,0.4);
 }
 
 /* ---------- SEARCH ---------- */
@@ -412,8 +197,8 @@ body { font-family: var(--font-body); color: var(--ink); background: var(--surfa
     transition: border-color var(--transition), box-shadow var(--transition);
 }
 .inv-search-form:focus-within {
-    border-color: var(--green);
-    box-shadow: 0 0 0 4px var(--green-glow), var(--shadow-md);
+    border-color: #f50606;
+    box-shadow: 0 0 0 4px rgba(220,38,38,0.15), var(--shadow-md);
 }
 .inv-search-inner {
     display: flex;
@@ -463,13 +248,13 @@ body { font-family: var(--font-body); color: var(--ink); background: var(--surfa
     font-weight: 600;
     cursor: pointer;
     transition: all var(--transition);
-    flex-shrink: 0;
 }
+
 .inv-search-btn:hover {
-    background: var(--green);
-    color: var(--ink);
-    transform: translateY(-1px);
+    background: #f70505;
+    color: #fff;
 }
+
 .inv-search-btn i { font-size: 1.2rem; }
 
 /* ---------- GRID ---------- */
@@ -499,7 +284,7 @@ body { font-family: var(--font-body); color: var(--ink); background: var(--surfa
 .pcard:not(.pcard--expired):hover {
     transform: translateY(-6px);
     box-shadow: var(--shadow-xl);
-    border-color: var(--green);
+    border-color: #f80606;
 }
 .pcard--expired {
     filter: grayscale(0.6);
@@ -669,7 +454,8 @@ body { font-family: var(--font-body); color: var(--ink); background: var(--surfa
     flex-shrink: 0;
     line-height: 1;
 }
-.qty-btn:hover:not(:disabled) { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+.qty-btn:hover:not(:disabled) { background: #f80202; color: #fff; border-color: #f30505; }
 .qty-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 .pcard__qty-input {
     width: 46px;
@@ -688,7 +474,7 @@ body { font-family: var(--font-body); color: var(--ink); background: var(--surfa
 }
 .pcard__qty-input::-webkit-outer-spin-button,
 .pcard__qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-.pcard__qty-input:focus { border-color: var(--green); }
+.pcard__qty-input:focus { border-color: #fc0707; }
 .pcard__qty-input:disabled { background: var(--surface-3); color: var(--ink-muted); }
 
 .pcard__cart-btn {
@@ -700,7 +486,7 @@ body { font-family: var(--font-body); color: var(--ink); background: var(--surfa
     padding: 0.7rem 1rem;
     border-radius: var(--radius-md);
     border: none;
-    background: var(--ink);
+    background: #f50303;
     color: #fff;
     font-family: var(--font-body);
     font-size: 0.875rem;
@@ -709,12 +495,13 @@ body { font-family: var(--font-body); color: var(--ink); background: var(--surfa
     transition: all var(--transition);
     letter-spacing: 0.01em;
 }
+
 .pcard__cart-btn:hover:not(:disabled) {
-    background: var(--green);
-    color: var(--ink);
-    box-shadow: 0 6px 20px var(--green-glow);
-    transform: translateY(-2px);
+    background: #dc2626;
+    color: #fff;
+    box-shadow: 0 6px 20px rgba(220,38,38,0.35);
 }
+
 .pcard__cart-btn--disabled,
 .pcard__cart-btn:disabled {
     background: var(--surface-3);
@@ -816,7 +603,208 @@ body { font-family: var(--font-body); color: var(--ink); background: var(--surfa
     .inv-grid { grid-template-columns: 1fr; }
 }
 </style>
+{% endblock %}
 
+{% block content %}
+<div class="inv-wrapper">
+    <div class="inv-header">
+        <div class="inv-header-left">
+            <div class="inv-title-group">
+                <span class="inv-eyebrow">
+                    <span class="inv-eyebrow-dot"></span>
+                    Live Inventory
+                </span>
+                <h1 class="inv-title">Product <span class="inv-title-accent">Catalog</span></h1>
+                <p class="inv-subtitle">Real-time stock management &amp; instant cart addition</p>
+            </div>
+        </div>
+        <div class="inv-header-right">
+            <a href="{{ url_for('cart') }}" class="inv-btn inv-btn-primary">
+                <i class="bi bi-cart3"></i>
+                View Cart
+            </a>
+            {% if is_admin %}
+            <a href="{{ url_for('upload_products') }}" class="inv-btn inv-btn-ghost">
+                <i class="bi bi-cloud-arrow-up-fill"></i>
+                Upload List
+            </a>
+            <a href="{{ url_for('add_product') }}" class="inv-btn inv-btn-accent">
+                <i class="bi bi-plus-circle-dotted"></i>
+                New Product
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="inv-search-wrap">
+        <form method="get" action="{{ url_for('products') }}" class="inv-search-form">
+            <div class="inv-search-inner">
+                <i class="bi bi-search inv-search-icon"></i>
+                <input
+                    type="text"
+                    name="search"
+                    class="inv-search-input"
+                    placeholder="Search by product name or category…"
+                    value="{{ search_query or '' }}"
+                    autocomplete="off"
+                >
+                {% if search_query %}
+                <a href="{{ url_for('products') }}" class="inv-search-clear" title="Clear search">
+                    <i class="bi bi-x-lg"></i>
+                </a>
+                {% endif %}
+            </div>
+            <button type="submit" class="inv-search-btn">
+                <i class="bi bi-arrow-right-short"></i>
+                Search
+            </button>
+        </form>
+    </div>
+
+    <div class="inv-grid">
+        {% for product in products %}
+
+        {% set is_expired = product.expiry_date and product.expiry_date < today %}
+        {% set expires_soon = product.expiry_date and not is_expired and product.expiry_date <= today_plus_30 %}
+        {% set low_stock = product.quantity <= 5 %}
+        {% set out_of_stock = product.quantity < 1 %}
+
+        <div class="pcard {% if is_expired %}pcard--expired{% endif %}">
+
+            <div class="pcard__topbar">
+                <span class="pcard__category">{{ product.category or 'General' }}</span>
+                <div class="pcard__badges">
+                    {% if is_expired %}
+                        <span class="pcard__badge pcard__badge--danger">
+                            <i class="bi bi-exclamation-octagon-fill"></i> Expired
+                        </span>
+                    {% elif expires_soon %}
+                        <span class="pcard__badge pcard__badge--warn">
+                            <i class="bi bi-hourglass-split"></i> Expiring Soon
+                        </span>
+                    {% endif %}
+                    {% if out_of_stock %}
+                        <span class="pcard__badge pcard__badge--danger">
+                            <i class="bi bi-x-circle-fill"></i> Out of Stock
+                        </span>
+                    {% elif low_stock %}
+                        <span class="pcard__badge pcard__badge--warn">
+                            <i class="bi bi-exclamation-triangle-fill"></i> Low Stock
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="pcard__body">
+                <p class="pcard__id">SKU #{{ product.id }}</p>
+                <h3 class="pcard__name">{{ product.name }}</h3>
+
+                {% if product.expiry_date %}
+                <p class="pcard__expiry {% if is_expired %}pcard__expiry--bad{% elif expires_soon %}pcard__expiry--warn{% endif %}">
+                    <i class="bi bi-calendar-event me-1"></i>
+                    {% if is_expired %}
+                        Expired {{ product.expiry_date.strftime('%d %b %Y') }}
+                    {% elif expires_soon %}
+                        Expires {{ product.expiry_date.strftime('%d %b %Y') }}
+                    {% else %}
+                        Exp: {{ product.expiry_date.strftime('%d %b %Y') }}
+                    {% endif %}
+                </p>
+                {% endif %}
+
+                <div class="pcard__meta">
+                    <div class="pcard__price-block">
+                        <span class="pcard__meta-label">Unit Price</span>
+                        <span class="pcard__price">Ksh {{ "{:,.2f}".format(product.selling_price or 0) }}</span>
+                    </div>
+                    <div class="pcard__stock-block">
+                        <span class="pcard__meta-label">Stock</span>
+                        <span class="pcard__stock {% if out_of_stock %}pcard__stock--none{% elif low_stock %}pcard__stock--low{% else %}pcard__stock--ok{% endif %}">
+                            {% if out_of_stock %}
+                                <i class="bi bi-x-circle-fill"></i> None
+                            {% elif low_stock %}
+                                <i class="bi bi-exclamation-triangle-fill"></i> {{ product.quantity }} left
+                            {% else %}
+                                <i class="bi bi-check-circle-fill"></i> {{ product.quantity }} units
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pcard__actions">
+                <form action="{{ url_for('add_to_cart', product_id=product.id) }}" method="POST" class="pcard__cart-form">
+                    <div class="pcard__qty-row">
+                        <label class="pcard__qty-label">QTY</label>
+                        <div class="pcard__qty-controls">
+                            <button type="button" class="qty-btn qty-btn--dec" onclick="adjustQty(this, -1)" {% if is_expired or out_of_stock %}disabled{% endif %}>
+                                <i class="bi bi-dash"></i>
+                            </button>
+                            <input
+                                type="number"
+                                name="quantity"
+                                class="pcard__qty-input"
+                                min="1"
+                                max="{{ product.quantity }}"
+                                value="1"
+                                {% if is_expired or out_of_stock %}disabled{% endif %}
+                            >
+                            <button type="button" class="qty-btn qty-btn--inc" onclick="adjustQty(this, 1)" {% if is_expired or out_of_stock %}disabled{% endif %}>
+                                <i class="bi bi-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button
+                        type="submit"
+                        class="pcard__cart-btn {% if is_expired or out_of_stock %}pcard__cart-btn--disabled{% endif %}"
+                        {% if out_of_stock or is_expired %}disabled{% endif %}
+                    >
+                        {% if is_expired %}
+                            <i class="bi bi-slash-circle"></i> Cannot Sell
+                        {% elif out_of_stock %}
+                            <i class="bi bi-x-circle"></i> Out of Stock
+                        {% else %}
+                            <i class="bi bi-cart-plus-fill"></i> Add to Cart
+                        {% endif %}
+                    </button>
+                </form>
+
+                {% if is_admin %}
+                <div class="pcard__admin-row">
+                    <a href="{{ url_for('edit_product', id=product.id) }}" class="pcard__admin-btn pcard__admin-btn--edit">
+                        <i class="bi bi-pencil-square"></i> Edit
+                    </a>
+                    <form
+                        action="{{ url_for('delete_product', id=product.id) }}"
+                        method="POST"
+                        class="pcard__delete-form"
+                        onsubmit="return confirm('Permanently delete \'{{ product.name }}\'? This cannot be undone.');"
+                    >
+                        <button type="submit" class="pcard__admin-btn pcard__admin-btn--delete">
+                            <i class="bi bi-trash-fill"></i> Delete
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+
+        </div>
+        {% else %}
+        <div class="inv-empty">
+            <div class="inv-empty-icon"><i class="bi bi-search-heart"></i></div>
+            <h4 class="inv-empty-title">No products found</h4>
+            <p class="inv-empty-sub">Try adjusting your search, or add new products to the inventory.</p>
+            <a href="{{ url_for('products') }}" class="inv-btn inv-btn-primary mt-3">
+                <i class="bi bi-arrow-counterclockwise"></i> View All Inventory
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
 <script>
 /* ── Quantity stepper ── */
 function adjustQty(btn, delta) {
@@ -859,5 +847,4 @@ document.querySelectorAll('.pcard').forEach((card, i) => {
     }
 })();
 </script>
-
 {% endblock %}

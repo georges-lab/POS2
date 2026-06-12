@@ -1,0 +1,333 @@
+{% extends 'base.html' %}
+{% block title %}Expense Report — BizTool POS{% endblock %}
+
+{% block head %}
+<style>
+/* ════════════════════════════════════════
+   EXPENSE REPORT — PAGE-LEVEL STYLES
+════════════════════════════════════════ */
+
+.page-header {
+  background: var(--ink);
+  border-radius: var(--r-lg);
+  padding: 1.75rem 2.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 1.25rem;
+  position: relative;
+  overflow: hidden;
+  animation: card-in 0.4s var(--ease) both;
+}
+.page-header::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 55% 80% at 0% 50%, rgba(239,68,68,0.12) 0%, transparent 65%),
+    radial-gradient(ellipse 40% 70% at 100% 20%, rgba(37,99,235,0.10) 0%, transparent 60%);
+  pointer-events: none;
+}
+.page-header-title { font-size: 1.35rem; font-weight: 700; color: var(--text); }
+.page-header-sub   { font-size: .82rem; color: var(--muted); margin-top: .2rem; }
+
+/* ── Summary Cards ── */
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.summary-card {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  border-radius: var(--r-lg);
+  padding: 1.2rem 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+  animation: card-in 0.4s var(--ease) both;
+}
+.summary-card .label { font-size: .75rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.summary-card .value { font-size: 1.45rem; font-weight: 700; color: var(--text); }
+.summary-card .value.danger { color: #ef4444; }
+.summary-card .icon  { font-size: 1.4rem; margin-bottom: .2rem; }
+
+/* ── Filter Bar ── */
+.filter-bar {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: var(--r-lg);
+  padding: 1rem 1.4rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem;
+  align-items: flex-end;
+  margin-bottom: 1.25rem;
+  animation: card-in 0.45s var(--ease) both;
+}
+.filter-bar label { font-size: .78rem; color: var(--muted); display: block; margin-bottom: .3rem; }
+.filter-bar input[type="date"] {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  padding: .42rem .8rem;
+  font-size: .85rem;
+}
+.filter-bar input[type="date"]:focus { outline: none; border-color: var(--accent); }
+.btn-filter {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--r-sm);
+  padding: .45rem 1.1rem;
+  font-size: .85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity .18s;
+}
+.btn-filter:hover { opacity: .85; }
+.btn-clear {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: .42rem .9rem;
+  font-size: .83rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-color .18s, color .18s;
+}
+.btn-clear:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── Category Breakdown ── */
+.section-card {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: var(--r-lg);
+  padding: 1.4rem 1.6rem;
+  margin-bottom: 1.25rem;
+  animation: card-in 0.5s var(--ease) both;
+}
+.section-title {
+  font-size: .95rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+.cat-row {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  margin-bottom: .6rem;
+}
+.cat-label { font-size: .83rem; color: var(--muted); min-width: 130px; }
+.cat-bar-wrap { flex: 1; background: var(--surface); border-radius: 99px; height: 8px; overflow: hidden; }
+.cat-bar { height: 100%; border-radius: 99px; background: #ef4444; transition: width .6s var(--ease); }
+.cat-amount { font-size: .83rem; font-weight: 600; color: var(--text); min-width: 90px; text-align: right; }
+
+/* ── Expenses Table ── */
+.table-card {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: var(--r-lg);
+  padding: 1.4rem 1.6rem;
+  animation: card-in 0.55s var(--ease) both;
+  overflow-x: auto;
+}
+.exp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .84rem;
+}
+.exp-table th {
+  text-align: left;
+  color: var(--muted);
+  font-size: .72rem;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  padding: .5rem .75rem;
+  border-bottom: 1px solid var(--border);
+}
+.exp-table td {
+  padding: .7rem .75rem;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  color: var(--text);
+  vertical-align: middle;
+}
+.exp-table tr:last-child td { border-bottom: none; }
+.exp-table tr:hover td { background: rgba(255,255,255,0.025); }
+
+.badge-cat {
+  display: inline-block;
+  padding: .18rem .65rem;
+  border-radius: 99px;
+  font-size: .72rem;
+  font-weight: 600;
+  background: rgba(239,68,68,0.15);
+  color: #ef4444;
+}
+.amount-cell { font-weight: 700; color: #ef4444; }
+
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--muted);
+  font-size: .9rem;
+}
+.empty-state i { font-size: 2rem; display: block; margin-bottom: .6rem; opacity: .3; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 py-3" style="max-width:1100px;margin:auto;">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div style="position:relative;z-index:1;">
+      <div class="page-header-title">
+        <i class="bi bi-receipt-cutoff" style="color:#ef4444;margin-right:.4rem;"></i>
+        Expense Report
+      </div>
+      <div class="page-header-sub">
+        {% if start_date and end_date %}
+          Showing {{ start_date }} → {{ end_date }}
+        {% else %}
+          All recorded expenses
+        {% endif %}
+      </div>
+    </div>
+    <a href="{{ url_for('add_expense') }}" class="btn-filter" style="position:relative;z-index:1;">
+      <i class="bi bi-plus-lg"></i> Add Expense
+    </a>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="summary-grid">
+    <div class="summary-card">
+      <div class="icon"></div>
+      <div class="label">Total Expenses</div>
+      <div class="value danger">KES {{ "{:,.2f}".format(total_filtered) }}</div>
+    </div>
+    <div class="summary-card">
+      <div class="icon"></div>
+      <div class="label">Records</div>
+      <div class="value">{{ expenses | length }}</div>
+    </div>
+    <div class="summary-card">
+      <div class="icon"></div>
+      <div class="label">Categories</div>
+      <div class="value">{{ category_totals | length }}</div>
+    </div>
+    {% if expenses %}
+    <div class="summary-card">
+      <div class="icon"></div>
+      <div class="label">Latest Entry</div>
+      <div class="value" style="font-size:1rem;padding-top:.15rem;">{{ expenses[0].date }}</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Date Filter -->
+  <div class="filter-bar">
+    <form method="GET" action="{{ url_for('expense_report') }}" style="display:flex;flex-wrap:wrap;gap:.75rem;align-items:flex-end;width:100%;">
+      <div>
+        <label>From</label>
+        <input type="date" name="start_date" value="{{ start_date or '' }}">
+      </div>
+      <div>
+        <label>To</label>
+        <input type="date" name="end_date" value="{{ end_date or '' }}">
+      </div>
+      <button type="submit" class="btn-filter">
+        <i class="bi bi-funnel"></i> Filter
+      </button>
+      {% if start_date or end_date %}
+      <a href="{{ url_for('expense_report') }}" class="btn-clear">
+        <i class="bi bi-x"></i> Clear
+      </a>
+      {% endif %}
+    </form>
+  </div>
+
+  <!-- Category Breakdown -->
+  {% if category_totals %}
+  <div class="section-card">
+    <div class="section-title">
+      <i class="bi bi-pie-chart" style="color:#ef4444;"></i> By Category
+    </div>
+    {% set max_cat = category_totals | map(attribute='total') | max %}
+    {% for cat in category_totals | sort(attribute='total', reverse=True) %}
+    <div class="cat-row">
+      <div class="cat-label">{{ cat.category or 'Uncategorised' }}</div>
+      <div class="cat-bar-wrap">
+        <div class="cat-bar" style="width: {{ ((cat.total / max_cat) * 100) | round(1) }}%"></div>
+      </div>
+      <div class="cat-amount">KES {{ "{:,.2f}".format(cat.total) }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Expenses Table -->
+  <div class="table-card">
+    <div class="section-title">
+      <i class="bi bi-table" style="color:#ef4444;"></i>
+      All Entries
+      <span style="font-size:.75rem;font-weight:400;color:var(--muted);margin-left:auto;">
+        {{ expenses | length }} record{{ 's' if expenses | length != 1 else '' }}
+      </span>
+    </div>
+
+    {% if expenses %}
+    <table class="exp-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Date</th>
+          <th>Description</th>
+          <th>Category</th>
+          <th style="text-align:right;">Amount (KES)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in expenses %}
+        <tr>
+          <td style="color:var(--muted);font-size:.78rem;">{{ loop.index }}</td>
+          <td>{{ e.date }}</td>
+          <td>{{ e.description or '—' }}</td>
+          <td><span class="badge-cat">{{ e.category or 'General' }}</span></td>
+          <td class="amount-cell" style="text-align:right;">{{ "{:,.2f}".format(e.amount) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="4" style="text-align:right;font-size:.82rem;color:var(--muted);padding-top:.9rem;border-top:1px solid var(--border);">
+            Total
+          </td>
+          <td class="amount-cell" style="text-align:right;padding-top:.9rem;border-top:1px solid var(--border);">
+            {{ "{:,.2f}".format(total_filtered) }}
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+    {% else %}
+    <div class="empty-state">
+      <i class="bi bi-inbox"></i>
+      No expenses found{% if start_date or end_date %} for the selected date range{% endif %}.
+      <br><br>
+      <a href="{{ url_for('add_expense') }}" class="btn-filter" style="display:inline-block;">
+        + Record an Expense
+      </a>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

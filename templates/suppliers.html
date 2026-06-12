@@ -1,110 +1,461 @@
 {% extends "base.html" %}
+{% block title %}Suppliers{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
-    <h2 class="mb-4">Supplier Management</h2>
 
-    <div class="card p-3 mb-4 shadow-sm border-0 bg-light">
-        <form method="POST" action="{{ url_for('suppliers') }}" class="row g-2">
-            <div class="col-md-2">
-                <input name="name" class="form-control" placeholder="Supplier Name" required>
-            </div>
-            <div class="col-md-2">
-                <input name="phone" class="form-control" placeholder="Phone">
-            </div>
-            <div class="col-md-2">
-                <input name="address" class="form-control" placeholder="Address/Location">
-            </div>
-            <div class="col-md-2">
-                <input name="items_supplied" class="form-control" placeholder="Items (e.g. Bread)">
-            </div>
-            <div class="col-md-2">
-                <div class="input-group">
-                    <span class="input-group-text">KES</span>
-                    <input type="number" name="initial_amount" class="form-control" placeholder="Total Value" step="0.01">
-                </div>
-            </div>
-            <div class="col-md-2">
-                <button type="submit" class="btn btn-primary w-100 fw-bold">Add Supplier</button>
-            </div>
-        </form>
+    {# ── Page Header ── #}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold"><i class="bi bi-truck text-primary me-2"></i>Suppliers</h2>
+        {% if is_admin %}
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addSupplierModal">
+            <i class="bi bi-plus-lg me-1"></i> Add Supplier
+        </button>
+        {% endif %}
     </div>
 
-    <div class="table-responsive">
-        <table class="table table-hover table-bordered bg-white">
-          <thead class="table-dark text-center">
-            <tr>
-              <th>ID</th>
-              <th>Name</th>
-              <th>Items</th>
-              <th>Total Supplied</th>
-              <th>Created</th>
-              <th style="min-width: 150px;">Actions</th> 
-            </tr>
-          </thead>
-          <tbody class="text-center align-middle">
-            {% for s in suppliers %}
-            <tr>
-              <td>{{ s.id }}</td>
-              <td class="text-start">
-                <strong>{{ s.name }}</strong><br>
-                <small class="text-muted">{{ s.phone or 'No Phone' }}</small>
-              </td>
-              <td><span class="badge bg-secondary">{{ s.items_supplied or 'General' }}</span></td>
-              <td class="fw-bold text-primary">
-                KES {{ "{:,.2f}".format(s.total_value or 0) }}
-              </td>
-              <td>{{ s.created_at.strftime("%d/%m/%y") }}</td>
-              <td>
-                <div class="btn-group" role="group">
-                    <button class="btn btn-sm btn-outline-warning" data-bs-toggle="modal" data-bs-target="#editModal{{ s.id }}">
-                      <i class="bi bi-pencil"></i> Edit
-                    </button>
-                    <a href="{{ url_for('delete_supplier', id=s.id) }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this supplier?');">
-                      <i class="bi bi-trash"></i> Delete
-                    </a>
-                </div>
-              </td>
-            </tr>
+    {# ── Suppliers Table ── #}
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Name</th>
+                        <th>Phone</th>
+                        <th>Items Supplied</th>
+                        <th class="text-end">Total Purchased</th>
+                        <th class="text-end">Amount Owed</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in suppliers %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('supplier_detail', id=s.id) }}" class="fw-bold text-decoration-none">
+                                {{ s.name }}
+                            </a>
+                            {% if s.email %}
+                            <br><small class="text-muted">{{ s.email }}</small>
+                            {% endif %}
+                        </td>
+                        <td>{{ s.phone or '—' }}</td>
+                        <td><small class="text-muted">{{ s.items_supplied or '—' }}</small></td>
+                        <td class="text-end fw-bold">KES {{ "{:,.2f}".format(s.total_value) }}</td>
+                        <td class="text-end">
+                            {% if s.balance_owed > 0 %}
+                                <span class="badge bg-danger-subtle text-danger fw-semibold">
+                                    KES {{ "{:,.2f}".format(s.balance_owed) }}
+                                </span>
+                            {% else %}
+                                <span class="badge bg-success-subtle text-success">Settled</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('supplier_detail', id=s.id) }}"
+                                   class="btn btn-outline-secondary" title="View history">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                {% if is_admin %}
+                                <button class="btn btn-outline-success"
+                                        title="Record purchase"
+                                        onclick="openPurchaseModal({{ s.id }}, '{{ s.name }}')">
+                                    <i class="bi bi-box-arrow-in-down"></i>
+                                </button>
+                                <button class="btn btn-outline-primary"
+                                        title="Edit"
+                                        onclick="openEditModal(
+                                            {{ s.id }},
+                                            '{{ s.name | e }}',
+                                            '{{ s.phone or '' | e }}',
+                                            '{{ s.email or '' | e }}',
+                                            '{{ s.address or '' | e }}',
+                                            '{{ s.items_supplied or '' | e }}'
+                                        )">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-outline-danger"
+                                        title="Delete"
+                                        onclick="confirmDelete({{ s.id }}, '{{ s.name | e }}')">
+                                    <i class="bi bi-trash3"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <i class="bi bi-truck display-4 d-block mb-3 opacity-25"></i>
+                            No suppliers yet. Add your first supplier above.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 
-            <div class="modal fade" id="editModal{{ s.id }}" tabindex="-1" aria-hidden="true">
-              <div class="modal-dialog">
-                <div class="modal-content">
-                  <form method="POST" action="{{ url_for('edit_supplier', id=s.id) }}">
-                    <div class="modal-header">
-                      <h5 class="modal-title">Edit {{ s.name }}</h5>
-                      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    {# ── Total owed summary ── #}
+    {% set grand_owed = suppliers | sum(attribute='balance_owed') %}
+    {% if grand_owed > 0 %}
+    <div class="alert alert-warning d-flex align-items-center gap-2 mb-4">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <span>
+            Total outstanding payables to all suppliers:
+            <strong>KES {{ "{:,.2f}".format(grand_owed) }}</strong>
+        </span>
+    </div>
+    {% endif %}
+
+</div>{# /container #}
+
+
+{# ══════════════════════════════════════════════════════════════════════════ #}
+{#  ADD SUPPLIER MODAL                                                        #}
+{# ══════════════════════════════════════════════════════════════════════════ #}
+<div class="modal fade" id="addSupplierModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('suppliers') }}">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-person-plus me-2"></i>Add Supplier</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Supplier Name <span class="text-danger">*</span></label>
+                        <input type="text" name="name" class="form-control" required>
                     </div>
-                    <div class="modal-body text-start">
-                      <div class="mb-3">
-                        <label class="form-label">Name</label>
-                        <input type="text" name="name" class="form-control" value="{{ s.name }}" required>
-                      </div>
-                      <div class="mb-3">
-                        <label class="form-label">Phone</label>
-                        <input type="text" name="phone" class="form-control" value="{{ s.phone }}">
-                      </div>
-                      <div class="mb-3">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Phone</label>
+                            <input type="text" name="phone" class="form-control" placeholder="e.g. 0712 345 678">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email</label>
+                            <input type="email" name="email" class="form-control">
+                        </div>
+                    </div>
+                    <div class="mb-3 mt-3">
                         <label class="form-label">Address</label>
-                        <input type="text" name="address" class="form-control" value="{{ s.address }}">
-                      </div>
-                      <div class="mb-3">
+                        <input type="text" name="address" class="form-control">
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label">Items Supplied</label>
-                        <input type="text" name="items_supplied" class="form-control" value="{{ s.items_supplied }}">
-                      </div>
+                        <input type="text" name="items_supplied" class="form-control"
+                               placeholder="e.g. Beverages, Snacks">
                     </div>
-                    <div class="modal-footer">
-                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                      <button type="submit" class="btn btn-primary">Save Changes</button>
-                    </div>
-                  </form>
                 </div>
-              </div>
-            </div>
-            {% endfor %}
-          </tbody>
-        </table>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg me-1"></i> Save Supplier
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
-
-    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary mt-3">Back to Dashboard</a>
 </div>
+
+
+{# ══════════════════════════════════════════════════════════════════════════ #}
+{#  EDIT SUPPLIER MODAL                                                       #}
+{# ══════════════════════════════════════════════════════════════════════════ #}
+<div class="modal fade" id="editSupplierModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="editSupplierForm" method="POST" action="">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-pencil me-2"></i>Edit Supplier</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Supplier Name <span class="text-danger">*</span></label>
+                        <input type="text" id="editName" name="name" class="form-control" required>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Phone</label>
+                            <input type="text" id="editPhone" name="phone" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email</label>
+                            <input type="email" id="editEmail" name="email" class="form-control">
+                        </div>
+                    </div>
+                    <div class="mb-3 mt-3">
+                        <label class="form-label">Address</label>
+                        <input type="text" id="editAddress" name="address" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Items Supplied</label>
+                        <input type="text" id="editItems" name="items_supplied" class="form-control">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg me-1"></i> Update Supplier
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+{# ══════════════════════════════════════════════════════════════════════════ #}
+{#  RECORD PURCHASE MODAL                                                     #}
+{# ══════════════════════════════════════════════════════════════════════════ #}
+<div class="modal fade" id="purchaseModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form id="purchaseForm" method="POST" action="{{ url_for('supplier_purchase') }}">
+                <input type="hidden" name="supplier_id" id="purchaseSupplierId">
+                <input type="hidden" name="items_json" id="purchaseItemsJson">
+
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-box-arrow-in-down me-2"></i>
+                        Record Purchase — <span id="purchaseSupplierName"></span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    {# Notes field #}
+                    <div class="mb-3">
+                        <label class="form-label">Delivery Note / Reference <small class="text-muted">(optional)</small></label>
+                        <input type="text" name="notes" class="form-control" placeholder="e.g. DN-2025-001">
+                    </div>
+
+                    {# Add item row #}
+                    <div class="row g-2 align-items-end mb-3">
+                        <div class="col-md-5">
+                            <label class="form-label fw-semibold">Product</label>
+                            <select id="purchaseProduct" class="form-select">
+                                <option value="">— select product —</option>
+                                {% for p in products %}
+                                <option value="{{ p.id }}"
+                                        data-cost="{{ p.buying_price or 0 }}">
+                                    {{ p.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Qty</label>
+                            <input type="number" id="purchaseQty" class="form-control" min="1" value="1">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Unit Cost (KES)</label>
+                            <input type="number" id="purchaseCost" class="form-control" min="0.01" step="0.01">
+                        </div>
+                        <div class="col-md-1">
+                            <button type="button" class="btn btn-success w-100" onclick="addPurchaseLine()">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    {# Items table #}
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered align-middle mb-0" id="purchaseLinesTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Product</th>
+                                    <th class="text-center">Qty</th>
+                                    <th class="text-end">Unit Cost</th>
+                                    <th class="text-end">Line Total</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="purchaseLines">
+                                <tr id="emptyPurchaseRow">
+                                    <td colspan="5" class="text-center text-muted py-3">
+                                        No items added yet.
+                                    </td>
+                                </tr>
+                            </tbody>
+                            <tfoot>
+                                <tr class="table-light fw-bold">
+                                    <td colspan="3" class="text-end">Total:</td>
+                                    <td class="text-end" id="purchaseGrandTotal">KES 0.00</td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success" id="submitPurchaseBtn" disabled>
+                        <i class="bi bi-check-lg me-1"></i> Confirm Purchase
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+{# ══════════════════════════════════════════════════════════════════════════ #}
+{#  DELETE CONFIRMATION MODAL                                                 #}
+{# ══════════════════════════════════════════════════════════════════════════ #}
+<div class="modal fade" id="deleteSupplierModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <form id="deleteSupplierForm" method="POST" action="">
+                <div class="modal-header bg-danger text-white">
+                    <h6 class="modal-title"><i class="bi bi-exclamation-triangle me-2"></i>Delete Supplier</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-0">
+                        Delete <strong id="deleteSupplierName"></strong>?
+                        All purchase history for this supplier will also be removed.
+                        This cannot be undone.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger btn-sm">
+                        <i class="bi bi-trash3 me-1"></i> Delete
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+{# ══════════════════════════════════════════════════════════════════════════ #}
+{#  JAVASCRIPT                                                                #}
+{# ══════════════════════════════════════════════════════════════════════════ #}
+<script>
+// ── Purchase modal ────────────────────────────────────────────────────────────
+let purchaseLines = [];
+
+function openPurchaseModal(supplierId, supplierName) {
+    purchaseLines = [];
+    renderPurchaseLines();
+    document.getElementById('purchaseSupplierId').value  = supplierId;
+    document.getElementById('purchaseSupplierName').textContent = supplierName;
+    document.getElementById('purchaseProduct').value = '';
+    document.getElementById('purchaseQty').value    = 1;
+    document.getElementById('purchaseCost').value   = '';
+    new bootstrap.Modal(document.getElementById('purchaseModal')).show();
+}
+
+// Pre-fill unit cost from product's current buying_price when user picks a product
+document.getElementById('purchaseProduct').addEventListener('change', function () {
+    const opt = this.options[this.selectedIndex];
+    const cost = opt.dataset.cost;
+    if (cost && parseFloat(cost) > 0) {
+        document.getElementById('purchaseCost').value = parseFloat(cost).toFixed(2);
+    }
+});
+
+function addPurchaseLine() {
+    const select    = document.getElementById('purchaseProduct');
+    const productId = parseInt(select.value);
+    const productName = select.options[select.selectedIndex].text;
+    const qty       = parseInt(document.getElementById('purchaseQty').value);
+    const cost      = parseFloat(document.getElementById('purchaseCost').value);
+
+    if (!productId)     { alert('Please select a product.');          return; }
+    if (qty <= 0)       { alert('Quantity must be at least 1.');       return; }
+    if (cost <= 0)      { alert('Unit cost must be greater than 0.');  return; }
+
+    // Merge with existing line for the same product instead of duplicating
+    const existing = purchaseLines.find(l => l.product_id === productId);
+    if (existing) {
+        existing.quantity  += qty;
+        existing.unit_cost  = cost;   // use latest entered cost
+        existing.line_total = existing.quantity * cost;
+    } else {
+        purchaseLines.push({
+            product_id:   productId,
+            product_name: productName,
+            quantity:     qty,
+            unit_cost:    cost,
+            line_total:   qty * cost
+        });
+    }
+
+    renderPurchaseLines();
+    select.value = '';
+    document.getElementById('purchaseQty').value   = 1;
+    document.getElementById('purchaseCost').value  = '';
+}
+
+function removePurchaseLine(idx) {
+    purchaseLines.splice(idx, 1);
+    renderPurchaseLines();
+}
+
+function renderPurchaseLines() {
+    const tbody      = document.getElementById('purchaseLines');
+    const emptyRow   = document.getElementById('emptyPurchaseRow');
+    const grandTotal = document.getElementById('purchaseGrandTotal');
+    const submitBtn  = document.getElementById('submitPurchaseBtn');
+
+    if (purchaseLines.length === 0) {
+        tbody.innerHTML = '';
+        tbody.appendChild(emptyRow);
+        grandTotal.textContent = 'KES 0.00';
+        submitBtn.disabled = true;
+        document.getElementById('purchaseItemsJson').value = '[]';
+        return;
+    }
+
+    let total = 0;
+    tbody.innerHTML = '';
+
+    purchaseLines.forEach((line, idx) => {
+        total += line.line_total;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${line.product_name}</td>
+            <td class="text-center">${line.quantity}</td>
+            <td class="text-end">KES ${line.unit_cost.toFixed(2)}</td>
+            <td class="text-end fw-bold">KES ${line.line_total.toFixed(2)}</td>
+            <td class="text-center">
+                <button type="button" class="btn btn-sm btn-outline-danger"
+                        onclick="removePurchaseLine(${idx})">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </td>`;
+        tbody.appendChild(tr);
+    });
+
+    grandTotal.textContent = 'KES ' + total.toFixed(2);
+    submitBtn.disabled = false;
+    document.getElementById('purchaseItemsJson').value = JSON.stringify(
+        purchaseLines.map(({ product_id, quantity, unit_cost }) => ({ product_id, quantity, unit_cost }))
+    );
+}
+
+// ── Edit modal ────────────────────────────────────────────────────────────────
+function openEditModal(id, name, phone, email, address, items) {
+    document.getElementById('editName').value    = name;
+    document.getElementById('editPhone').value   = phone;
+    document.getElementById('editEmail').value   = email;
+    document.getElementById('editAddress').value = address;
+    document.getElementById('editItems').value   = items;
+    document.getElementById('editSupplierForm').action = '/edit_supplier/' + id;
+    new bootstrap.Modal(document.getElementById('editSupplierModal')).show();
+}
+
+// ── Delete modal ──────────────────────────────────────────────────────────────
+function confirmDelete(id, name) {
+    document.getElementById('deleteSupplierName').textContent = name;
+    document.getElementById('deleteSupplierForm').action = '/delete_supplier/' + id;
+    new bootstrap.Modal(document.getElementById('deleteSupplierModal')).show();
+}
+</script>
 {% endblock %}

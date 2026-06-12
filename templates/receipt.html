@@ -2,123 +2,546 @@
 {% block content %}
 
 <style>
-    /* 1. SCREEN VIEW - Centered and Pretty */
-    .main-wrapper { 
-        padding-top: 80px !important; 
-        background-color: #f8f9fa; 
-        min-height: 100vh; 
+  /* ── SCREEN STYLES ──────────────────────────────────────── */
+  .main-wrapper {
+    padding-top: 80px !important;
+    background-color: #f0f4f8;
+    min-height: 100vh;
+  }
+
+  .receipt-card {
+    max-width: 480px;
+    border-radius: 16px;
+    background: #fff;
+    border: none;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+  }
+
+  .receipt-header-band {
+    background: linear-gradient(135deg, #1a56a0 0%, #0e3a74 100%);
+    border-radius: 14px 14px 0 0;
+    padding: 24px 24px 20px;
+    color: #fff;
+  }
+
+  .receipt-header-band .biz-name {
+    font-size: 1.25rem;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+
+  .receipt-header-band .receipt-meta {
+    font-size: 0.78rem;
+    opacity: 0.78;
+    margin-top: 4px;
+  }
+
+  .receipt-body { padding: 20px 24px; }
+
+  /* Customer / payment method badge */
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.82rem;
+    color: #555;
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+    border-bottom: 1px dashed #dee2e6;
+  }
+
+  .method-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+  }
+  .method-cash    { background:#e8f5e9; color:#2e7d32; border:1px solid #a5d6a7; }
+  .method-mpesa   { background:#e3f2fd; color:#1565c0; border:1px solid #90caf9; }
+  .method-pending { background:#fff8e1; color:#e65100; border:1px solid #ffcc80; }
+
+  /* Items table */
+  .items-table { width:100%; border-collapse:collapse; font-size:0.87rem; }
+  .items-table thead th {
+    font-size:0.72rem; font-weight:700; letter-spacing:0.8px;
+    text-transform:uppercase; color:#888; padding:0 0 8px;
+  }
+  .items-table thead th:nth-child(2) { text-align:center; }
+  .items-table thead th:nth-child(3) { text-align:right; }
+  .items-table tbody td { padding: 6px 0; vertical-align:top; color:#2c2c2c; }
+  .items-table tbody td:nth-child(2) { text-align:center; }
+  .items-table tbody td:nth-child(3) { text-align:right; font-variant-numeric:tabular-nums; }
+  .items-table tbody tr:not(:last-child) td {
+    border-bottom: 1px solid #f1f3f5;
+  }
+  .item-discount {
+    font-size:0.72rem; color:#c0392b; display:block; margin-top:1px;
+  }
+  .item-unit-price {
+    font-size:0.72rem; color:#888; display:block; margin-top:1px;
+  }
+
+  /* Totals block */
+  .totals-block {
+    border-top: 2px solid #1a56a0;
+    margin-top: 10px;
+    padding-top: 12px;
+  }
+  .totals-row {
+    display:flex; justify-content:space-between;
+    font-size:0.85rem; color:#444; margin-bottom:5px;
+  }
+  .totals-row.grand {
+    font-size:1.1rem; font-weight:800; color:#1a1a2e;
+    border-top:1px dashed #ccc; padding-top:8px; margin-top:4px;
+  }
+  .totals-row.discount-row { color:#c0392b; }
+  .totals-row.tax-row      { color:#666; font-style:italic; }
+  .totals-row.tax-row span:first-child::after {
+    content: ' '; 
+  }
+
+  /* M-Pesa panel */
+  .mpesa-panel {
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    border: 1px solid #90caf9;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-top: 14px;
+  }
+  .mpesa-panel .mpesa-title {
+    font-size:0.72rem; font-weight:800; letter-spacing:1px;
+    text-transform:uppercase; color:#1565c0; margin-bottom:8px;
+  }
+  .mpesa-detail-row {
+    display:flex; justify-content:space-between;
+    font-size:0.82rem; color:#1a237e; margin-bottom:4px;
+  }
+  .mpesa-detail-row .label { opacity:0.7; }
+  .mpesa-detail-row .value { font-weight:700; font-variant-numeric:tabular-nums; }
+  .mpesa-ref {
+    font-family: 'Courier New', monospace;
+    font-size:0.85rem; font-weight:800;
+    color:#0d47a1; letter-spacing:1px;
+  }
+
+  /* Cash panel */
+  .cash-panel {
+    background:#f8fafb; border:1px solid #e0e0e0;
+    border-radius:10px; padding:12px 16px; margin-top:14px;
+  }
+  .cash-detail-row {
+    display:flex; justify-content:space-between;
+    font-size:0.85rem; color:#333; margin-bottom:4px;
+  }
+
+  /* Receipt status badge */
+  .status-badge {
+    display:inline-block; padding:2px 10px; border-radius:20px;
+    font-size:0.72rem; font-weight:700; letter-spacing:0.5px;
+    text-transform:uppercase;
+  }
+  .status-paid        { background:#e8f5e9; color:#2e7d32; border:1px solid #a5d6a7; }
+  .status-partial     { background:#fff8e1; color:#e65100; border:1px solid #ffcc80; }
+  .status-open        { background:#fce4ec; color:#c62828; border:1px solid #ef9a9a; }
+  .status-cancelled   { background:#f5f5f5; color:#757575; border:1px solid #bdbdbd; }
+
+  /* Footer */
+  .receipt-footer {
+    text-align:center; padding:18px 0 4px;
+    border-top:1px dashed #dee2e6; margin-top:16px;
+  }
+  .receipt-footer .thank-you {
+    font-size:0.95rem; font-weight:800;
+    letter-spacing:2px; text-transform:uppercase; color:#1a56a0;
+  }
+  .receipt-footer .tagline {
+    font-size:0.72rem; color:#999; margin-top:3px;
+  }
+
+  /* Action buttons */
+  .action-bar {
+    max-width:480px; margin:0 auto 16px;
+    background: #fff;
+    padding: 16px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  }
+
+  /* ── PRINT STYLES ──────────────────────────────────────── */
+  @media print {
+    @page { size: 80mm auto; margin: 0; }
+
+    html, body {
+      margin: 0 !important; padding: 0 !important;
+      width: 100% !important;
     }
-    .receipt-card { 
-        max-width: 450px; 
-        border-radius: 15px; 
-        background: #fff; 
-        border: none;
+
+    .no-print, nav, footer, .navbar, .action-bar { display:none !important; }
+
+    .main-wrapper {
+      padding: 0 !important; margin: 0 !important;
+      background: #fff !important; width: 100% !important;
     }
 
-    /* 2. THE ULTIMATE PRINT FIX - Center & Display Data */
-    @media print {
-        @page {
-            size: 80mm auto;
-            margin: 0;
-        }
-
-        /* Force centering on the printed page */
-        html, body {
-            margin: 0 !important;
-            padding: 0 !important;
-            display: flex !important;
-            justify-content: center !important;
-            width: 100% !important;
-        }
-
-        /* Hide everything but the card */
-        .no-print, nav, footer, .navbar, .payment-section, .btn {
-            display: none !important;
-        }
-
-        .main-wrapper {
-            padding: 0 !important;
-            margin: 0 !important;
-            width: 100% !important;
-            display: flex !important;
-            justify-content: center !important;
-        }
-
-        .receipt-card {
-            visibility: visible !important;
-            width: 80mm !important;
-            max-width: 80mm !important;
-            margin: 0 auto !important; /* This centers it in Windows Print */
-            padding: 5mm !important;
-            box-shadow: none !important;
-            border: none !important;
-            position: relative !important;
-        }
-
-        /* Ensure all text is dark and visible */
-        .receipt-card * {
-            visibility: visible !important;
-            color: #000 !important;
-        }
+    .receipt-card {
+      width: 80mm !important; max-width: 80mm !important;
+      margin: 0 auto !important; padding: 0 !important;
+      box-shadow: none !important; border-radius: 0 !important;
     }
+
+    .receipt-header-band {
+      background: #000 !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      border-radius: 0 !important;
+      padding: 10px 12px !important;
+    }
+
+    .receipt-body { padding: 10px 12px !important; }
+
+    .mpesa-panel {
+      background: #f0f0f0 !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      border: 1px solid #999 !important;
+    }
+
+    .receipt-card * { visibility:visible !important; }
+    .no-print { display:none !important; }
+  }
 </style>
 
+{# ══════════════════════════════════════════════════════════
+   TEMPLATE VARIABLES — resolve all data with safe fallbacks
+   ══════════════════════════════════════════════════════════ #}
+
+{# Payment method — prefer first payment record, fall back to receipt status #}
+{% set payment       = payment if payment is defined else none %}
+{% set pay_method    = payment.method if payment else 'Cash' %}
+{% set is_mpesa      = (pay_method | lower) == 'mpesa' %}
+{% set is_cash       = (pay_method | lower) == 'cash' %}
+
+{# Cash figures — prefer template vars passed from route (already resolved
+   from DB columns + URL params), then fall back to receipt DB columns #}
+{% set cash_received = (cash_received if cash_received is defined else
+                        (receipt.cash_received or request.args.get('cash_received') or 0)) | float %}
+{% set change_given  = (change_given  if change_given  is defined else
+                        (receipt.change_given  or request.args.get('change_given')  or 0)) | float %}
+
+{# M-Pesa details #}
+{% set mpesa_ref    = payment.reference if payment else '' %}
+{% set mpesa_phone  = payment.phone     if (payment and payment.phone is defined and payment.phone) else '' %}
+{% set mpesa_amount = payment.amount    if payment else receipt.total_amount %}
+
+{# Summary figures — prefer route-computed vars, fall back to receipt fields #}
+{% set subtotal        = (subtotal        if subtotal        is defined else receipt.total_amount) | float %}
+{% set total_discounts = (total_discounts if total_discounts is defined else (receipt.discount or 0)) | float %}
+{# VAT extracted from the inclusive total — informational only, never additive #}
+{% set total_tax       = (total_tax       if total_tax       is defined else
+                          (subtotal * 0.16 / 1.16)) | float %}
+
+{# Gross before discount (what would have been charged without any reduction) #}
+{% set gross_before_discount = subtotal + total_discounts %}
+
+{# Balance due — safe zero floor #}
+{% set balance_due = [receipt.balance_due or 0, 0] | max %}
+
+{# Receipt status for badge #}
+{% set rec_status = receipt.status | lower if receipt.status else 'open' %}
+
+{# Customer display name — replace walk-in raw string with professional label #}
+{% set raw_name     = receipt.customer_name or 'Retail Customer' %}
+{% set display_name = 'Retail Customer' if raw_name | lower == 'walk-in customer' else raw_name %}
+
+
 <div class="container main-wrapper">
-    <div class="d-flex justify-content-between mb-4 no-print mx-auto" style="max-width: 450px;">
-        <a href="{{ url_for('dashboard') }}" class="btn btn-light rounded-pill">← Exit</a>
-        <button onclick="window.print()" class="btn btn-primary px-4 rounded-pill">PRINT</button>
+
+  {# ── ACTION BAR (with print & email triggers integrated) ── #}
+  <div class="action-bar no-print mb-4">
+    <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center">
+      <a href="{{ url_for('dashboard') }}" class="btn btn-light rounded-pill px-3">← Dashboard</a>
+      
+      <div class="d-flex gap-2">
+        <button onclick="executeSilentThermalPrint({{ receipt.id }})" class="btn btn-success rounded-pill px-3">
+          🖨️ Fast Checkout Print
+        </button>
+        <button type="button" class="btn btn-outline-primary rounded-pill px-3" data-bs-toggle="collapse" data-bs-target="#emailActionBlock">
+          ✉️ Email Receipt
+        </button>
+        <button onclick="window.print()" class="btn btn-light rounded-pill px-2" title="Standard Browser Print">
+          Standard Print
+        </button>
+      </div>
     </div>
 
-    <div class="card receipt-card shadow-sm p-4 mx-auto mb-5">
-        <div class="text-center pb-3 mb-3 border-bottom">
-            <h4 class="fw-bolder mb-0 text-uppercase">{{ receipt.customer_name or "OFFICIAL RECEIPT" }}</h4>
-            <p class="text-muted small">#{{ receipt.id }} | {{ receipt.timestamp.strftime('%d/%m/%y %H:%M') }}</p>
+    <div class="collapse mt-3" id="emailActionBlock">
+      <form id="receiptEmailForm" onsubmit="dispatchReceiptEmail(event, {{ receipt.id }})">
+        <div class="input-group">
+          <span class="input-group-text bg-light"><i class="bi bi-envelope"></i></span>
+          <input type="email" name="client_email" class="form-control" placeholder="customer@example.com" required>
+          <button class="btn btn-primary" type="submit">Send Mail</button>
         </div>
+      </form>
+      <div id="emailStatusFeedback" class="mt-2 small d-none"></div>
+    </div>
+  </div>
 
-        <table class="table table-sm table-borderless mb-0">
-            <thead>
-                <tr class="small text-muted border-bottom">
-                    <th>ITEM</th>
-                    <th class="text-center">QTY</th>
-                    <th class="text-end">TOTAL</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for s in sales %}
-                <tr>
-                    <td>{{ s.product_name }}</td>
-                    <td class="text-center">x{{ s.quantity_sold }}</td>
-                    <td class="text-end">KES {{ "{:,.2f}".format(s.total_amount) }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+  <div class="receipt-card mx-auto mb-5">
 
-        <div class="pt-3 mt-2" style="border-top: 2px solid #333;">
-            <div class="d-flex justify-content-between fw-bold fs-5">
-                <span>TOTAL:</span>
-                <span>KES {{ "{:,.2f}".format(receipt.total_amount) }}</span>
-            </div>
-
-            {# DATA FIX: Check URL params first, then Database #}
-            {% set cash_val = request.args.get('cash_received') or receipt.cash_received or 0 %}
-            {% set cash_float = cash_val | float %}
-            
-            <div class="d-flex justify-content-between text-muted small mt-2">
-                <span>Cash Received:</span>
-                <span id="printCash">KES {{ "{:,.2f}".format(cash_float) }}</span>
-            </div>
-            <div class="d-flex justify-content-between fw-bold text-dark mt-1">
-                <span>Change Given:</span>
-                <span id="printChange">KES {{ "{:,.2f}".format(cash_float - receipt.total_amount if cash_float > receipt.total_amount else 0) }}</span>
-            </div>
-        </div>
-
-        <div class="text-center mt-4 pt-3 border-top">
-            <p class="small fw-bold text-uppercase mb-0">Thank you!</p>
-        </div>
+    {# ══ HEADER BAND ══════════════════════════════════════════ #}
+    <div class="receipt-header-band">
+      <div class="biz-name">Official Receipt</div>
+      <div class="receipt-meta">
+        Receipt No: <strong>#{{ receipt.id }}</strong>
+        &nbsp;|&nbsp;
+        {{ receipt.timestamp.strftime('%d %b %Y, %H:%M') }}
+      </div>
+      <div class="receipt-meta" style="margin-top:4px;">
+        Served by: <strong>{{ current_user.username | title }}</strong>
+        &nbsp;|&nbsp;
+        <span class="status-badge
+          {% if rec_status == 'paid' %}status-paid
+          {% elif rec_status == 'partially paid' %}status-partial
+          {% elif rec_status == 'cancelled' %}status-cancelled
+          {% else %}status-open{% endif %}"
+          style="vertical-align:middle;">
+          {{ receipt.status }}
+        </span>
+      </div>
     </div>
 
-    {# ... keep your payment-section and scripts here ... #}
+    <div class="receipt-body">
+
+      {# ══ CUSTOMER & PAYMENT METHOD ═══════════════════════════ #}
+      <div class="info-row">
+        <div>
+          <span style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.5px; color:#aaa;">Customer</span><br>
+          <strong style="color:#1a1a2e; font-size:0.92rem;">{{ display_name }}</strong>
+        </div>
+        <div>
+          {% if is_mpesa %}
+            <span class="method-badge method-mpesa">📱 M-Pesa</span>
+          {% elif is_cash %}
+            <span class="method-badge method-cash">💵 Cash</span>
+          {% else %}
+            <span class="method-badge method-pending">⏳ {{ pay_method }}</span>
+          {% endif %}
+        </div>
+      </div>
+
+      {# ══ ITEMS TABLE ══════════════════════════════════════════ #}
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th style="width:55%;">Item</th>
+            <th style="width:10%;">Qty</th>
+            <th style="width:35%;">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in sales %}
+          <tr>
+            <td>
+              {{ s.product_name }}
+              {# Show unit price when qty > 1 so the cashier can verify the line #}
+              {% if s.quantity_sold > 1 %}
+                <span class="item-unit-price">@ KES {{ "{:,.2f}".format(s.unit_price) }} each</span>
+              {% endif %}
+              {% if s.discount and s.discount > 0 %}
+                <span class="item-discount">− Disc: KES {{ "{:,.2f}".format(s.discount) }}</span>
+              {% endif %}
+            </td>
+            <td>{{ s.quantity_sold }}</td>
+            {# total_amount is the VAT-inclusive line total after discount #}
+            <td>KES {{ "{:,.2f}".format(s.total_amount) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      {# ══ TOTALS BLOCK ═════════════════════════════════════════ #}
+      <div class="totals-block">
+
+        {# Gross before discount — only shown when there is a discount #}
+        {% if total_discounts > 0 %}
+        <div class="totals-row">
+          <span>Gross Subtotal</span>
+          <span>KES {{ "{:,.2f}".format(gross_before_discount) }}</span>
+        </div>
+        <div class="totals-row discount-row">
+          <span>Total Discount</span>
+          <span>− KES {{ "{:,.2f}".format(total_discounts) }}</span>
+        </div>
+        {% endif %}
+
+        {# Subtotal after discount — always shown #}
+        <div class="totals-row">
+          <span>Subtotal</span>
+          <span>KES {{ "{:,.2f}".format(subtotal) }}</span>
+        </div>
+
+        {# VAT line — informational only; tax is already INSIDE the prices #}
+        <div class="totals-row tax-row">
+          <span>Incl. VAT 16%</span>
+          <span>KES {{ "{:,.2f}".format(total_tax) }}</span>
+        </div>
+
+        {# Grand total — this equals subtotal (no tax added on top) #}
+        <div class="totals-row grand">
+          <span>TOTAL DUE</span>
+          <span>KES {{ "{:,.2f}".format(receipt.total_amount) }}</span>
+        </div>
+
+      </div>{# end totals-block #}
+
+      {# ══ M-PESA PAYMENT PANEL ═════════════════════════════════ #}
+      {% if is_mpesa %}
+      <div class="mpesa-panel">
+        <div class="mpesa-title">📲 M-Pesa Payment Confirmed</div>
+
+        <div class="mpesa-detail-row">
+          <span class="label">Amount Paid</span>
+          <span class="value">KES {{ "{:,.2f}".format(mpesa_amount) }}</span>
+        </div>
+
+        {% if mpesa_ref %}
+        <div class="mpesa-detail-row">
+          <span class="label">M-Pesa Ref</span>
+          <span class="value mpesa-ref">{{ mpesa_ref }}</span>
+        </div>
+        {% endif %}
+
+        {% if mpesa_phone %}
+        <div class="mpesa-detail-row">
+          <span class="label">Phone</span>
+          <span class="value">
+            {# Mask middle digits for privacy: 2547XX****XX #}
+            {% set p = mpesa_phone | string %}
+            {% if p | length >= 10 %}
+              {{ p[:6] }}****{{ p[-2:] }}
+            {% else %}
+              {{ p }}
+            {% endif %}
+          </span>
+        </div>
+        {% endif %}
+
+        <div class="mpesa-detail-row" style="margin-top:6px; padding-top:6px; border-top:1px solid #90caf9;">
+          <span class="label">Balance Due</span>
+          <span class="value" style="color:{% if balance_due > 0 %}#c0392b{% else %}#2e7d32{% endif %};">
+            KES {{ "{:,.2f}".format(balance_due) }}
+          </span>
+        </div>
+      </div>
+
+      {# ══ CASH PAYMENT PANEL ═══════════════════════════════════ #}
+      {% elif is_cash %}
+      <div class="cash-panel">
+
+        <div class="cash-detail-row">
+          <span>Amount Paid</span>
+          <strong>KES {{ "{:,.2f}".format(receipt.amount_paid or receipt.total_amount) }}</strong>
+        </div>
+
+        {% if cash_received > 0 %}
+        <div class="cash-detail-row">
+          <span>Cash Received</span>
+          <strong>KES {{ "{:,.2f}".format(cash_received) }}</strong>
+        </div>
+        {# Compute change: prefer passed value, fall back to arithmetic #}
+        {% set computed_change = [cash_received - receipt.total_amount, 0] | max %}
+        <div class="cash-detail-row" style="color:#2e7d32; font-weight:700;">
+          <span>Change Given</span>
+          <strong>KES {{ "{:,.2f}".format(change_given if change_given > 0 else computed_change) }}</strong>
+        </div>
+        {% endif %}
+
+        {# Balance due for partial / open cash sales #}
+        {% if balance_due > 0 %}
+        <div class="cash-detail-row" style="color:#c0392b; font-weight:700; border-top:1px dashed #e0e0e0; padding-top:6px; margin-top:4px;">
+          <span>Balance Due</span>
+          <strong>KES {{ "{:,.2f}".format(balance_due) }}</strong>
+        </div>
+        {% endif %}
+
+      </div>
+      {% endif %}
+
+      {# ══ FOOTER ═══════════════════════════════════════════════ #}
+      <div class="receipt-footer">
+        <div class="thank-you">Thank You</div>
+        <div class="tagline">Goods sold are not returnable &bull; Keep this receipt</div>
+        <div style="font-size:0.68rem; color:#bbb; margin-top:8px;">
+          Powered by bizTOOL POS
+        </div>
+      </div>
+
+    </div>{# end receipt-body #}
+  </div>{# end receipt-card #}
+
 </div>
+
+<script>
+function executeSilentThermalPrint(receiptId) {
+    console.log("Fetching ESC/POS hardware buffer for Receipt #" + receiptId);
+    
+    fetch(`/receipt/${receiptId}/escpos`)
+        .then(response => {
+            if (!response.ok) throw new Error("Could not fetch printer binary stream from server.");
+            return response.arrayBuffer();
+        })
+        .then(buffer => {
+            // Check if pywebview API interface is fully initialized locally
+            if (window.pywebview && window.pywebview.api) {
+                // Convert bytes to string safely for the JavaScript-to-Python boundary
+                const binaryString = String.fromCharCode.apply(null, new Uint8Array(buffer));
+                window.pywebview.api.printRawThermal(binaryString);
+            } else {
+                // Fallback gracefully to default browser window printing if opened in a standard tab
+                window.print();
+            }
+        })
+        .catch(err => {
+            console.error("Thermal routine exception tracking:", err);
+            alert("Thermal printer failure: " + err.message);
+        });
+}
+
+function dispatchReceiptEmail(event, receiptId) {
+    event.preventDefault();
+    const form = event.target;
+    const feedback = document.getElementById('emailStatusFeedback');
+    
+    feedback.className = "mt-2 small alert alert-info p-2";
+    feedback.innerText = "Sending electronic receipt summary...";
+    feedback.classList.remove('d-none');
+
+    fetch(`/receipt/${receiptId}/email`, {
+        method: 'POST',
+        body: new FormData(form)
+    })
+    .then(res => res.json())
+    .then(data => {
+        if(data.success) {
+            feedback.className = "mt-2 small alert alert-success p-2";
+            feedback.innerText = data.message;
+            form.reset();
+        } else {
+            feedback.className = "mt-2 small alert alert-danger p-2";
+            feedback.innerText = data.message || "Failed to process delivery request.";
+        }
+    })
+    .catch(err => {
+        feedback.className = "mt-2 small alert alert-danger p-2";
+        feedback.innerText = "System connection failure to mail endpoint.";
+    });
+}
+</script>
+
 {% endblock %}

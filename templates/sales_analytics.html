@@ -1,0 +1,724 @@
+{% extends 'base.html' %}
+{% block title %}Sales Analytics — BizTool POS{% endblock %}
+
+{% block head %}
+<style>
+/* ═══════════════════════════════════════════════════════════
+   SALES ANALYTICS PAGE
+   Theme: white background, black text, red accents.
+   Inherits base.html tokens (--r-lg, --t, --ease …)
+═══════════════════════════════════════════════════════════ */
+
+/* ── Page header ── */
+.sa-header {
+  background: linear-gradient(135deg, #0e0e0e 0%, #1a0000 100%);
+  border-radius: var(--r-lg);
+  padding: 1.75rem 2.25rem;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 1.5rem; margin-bottom: 1.25rem;
+  position: relative; overflow: hidden;
+  border: 1.5px solid rgba(220,38,38,0.25);
+  animation: card-in 0.4s var(--ease) both;
+}
+.sa-header::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 60% 80% at 0% 60%, rgba(220,38,38,0.14) 0%, transparent 60%);
+  pointer-events: none;
+}
+.sa-header-left  { position: relative; z-index: 1; }
+.sa-header-right { position: relative; z-index: 1; display: flex; gap: .6rem; flex-wrap: wrap; }
+.sa-title {
+  font-family: var(--font-display); font-size: 1.55rem; font-weight: 800;
+  color:#fff ; letter-spacing: -0.03em; line-height: 1.1; margin: 0 0 .25rem;
+}
+.sa-title span { color: #ef4444; }
+.sa-sub { font-size: .82rem; color: rgba(255,255,255,0.42); margin: 0; }
+
+/* ── Mode tabs ── */
+.sa-tabs {
+  display: flex; gap: .5rem; margin-bottom: 1.25rem; flex-wrap: wrap;
+  animation: card-in 0.4s .05s var(--ease) both;
+}
+.sa-tab {
+  display: inline-flex; align-items: center; gap: .45rem;
+  padding: .52rem 1.2rem; border-radius: var(--r-full);
+  font-size: .84rem; font-weight: 700; text-decoration: none;
+  border: 1.5px solid rgba(0,0,0,0.12); background: #fff; color: #555;
+  transition: all var(--t);
+}
+.sa-tab:hover   { border-color: #ef4444; color: #ef4444; background: rgba(239,68,68,0.05); }
+.sa-tab.active  { background: #ef4444; border-color: #ef4444; color: #fff; }
+.sa-tab i { font-size: .9rem; }
+
+/* ── Filter bar ── */
+.sa-filters {
+  background: #fff; border: 1.5px solid #e2e8f0; border-radius: var(--r-lg);
+  padding: 1rem 1.4rem; display: flex; flex-wrap: wrap; gap: .75rem;
+  align-items: flex-end; margin-bottom: 1.25rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  animation: card-in 0.4s .08s var(--ease) both;
+}
+.sa-filter-group { display: flex; flex-direction: column; gap: .28rem; }
+.sa-filter-label {
+  font-size: .72rem; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: #6b7280;
+}
+.sa-filter-input {
+  padding: .44rem .85rem; border: 1.5px solid #e2e8f0;
+  border-radius: var(--r-sm); font-size: .84rem; color: #111;
+  background: #f8fafc; outline: none; transition: border-color var(--t);
+  font-family: var(--font-body);
+}
+.sa-filter-input:focus { border-color: #ef4444; background: #fff; }
+.sa-filter-btn {
+  padding: .48rem 1.1rem; border-radius: var(--r-sm); border: none;
+  font-size: .84rem; font-weight: 700; cursor: pointer; transition: all var(--t);
+  display: inline-flex; align-items: center; gap: .38rem;
+  background: #ef4444; color: #fff;
+}
+.sa-filter-btn:hover { background: #dc2626; }
+.sa-filter-btn.ghost {
+  background: #fff; color: #6b7280;
+  border: 1.5px solid #e2e8f0;
+}
+.sa-filter-btn.ghost:hover { border-color: #ef4444; color: #ef4444; }
+
+/* ── Summary cards ── */
+.sa-summary {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+  gap: 1rem; margin-bottom: 1.5rem;
+}
+.sa-card {
+  background: #fff; border: 1.5px solid #e8e8e8;
+  border-radius: var(--r-lg); padding: 1.2rem 1.35rem;
+  display: flex; flex-direction: column; gap: .3rem;
+  position: relative; overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  transition: transform var(--t), box-shadow var(--t), border-color var(--t);
+  animation: card-in 0.4s var(--ease) both;
+}
+.sa-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: var(--sa-accent, #ef4444);
+}
+.sa-card:hover { transform: translateY(-4px); box-shadow: 0 10px 28px rgba(0,0,0,0.1); border-color: var(--sa-accent, #ef4444); }
+.sa-card-icon {
+  width: 38px; height: 38px; border-radius: var(--r-sm);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; margin-bottom: .1rem;
+}
+.sa-card-label {
+  font-size: .64rem; font-weight: 700; letter-spacing: .12em;
+  text-transform: uppercase; color: #9ca3af;
+}
+.sa-card-value {
+  font-family: var(--font-display); font-size: 1.45rem; font-weight: 800;
+  color: #111; letter-spacing: -0.025em; line-height: 1.05;
+}
+.sa-card-sub { font-size: .73rem; color: #9ca3af; }
+
+/* ── Chart card ── */
+.sa-chart-card {
+  background: #fff; border: 1.5px solid #e8e8e8;
+  border-radius: var(--r-lg); padding: 1.4rem 1.6rem;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  animation: card-in 0.4s .12s var(--ease) both;
+}
+.sa-chart-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 1.1rem; flex-wrap: wrap; gap: .5rem;
+}
+.sa-chart-title {
+  font-family: var(--font-display); font-size: .95rem; font-weight: 700;
+  color: #111; display: flex; align-items: center; gap: .45rem;
+}
+.sa-chart-title i { color: #ef4444; }
+
+/* ── Data table ── */
+.sa-table-card {
+  background: #fff; border: 1.5px solid #e8e8e8;
+  border-radius: var(--r-lg); margin-bottom: 1.25rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04); overflow: hidden;
+  animation: card-in 0.4s .16s var(--ease) both;
+}
+.sa-table-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1.1rem 1.4rem; border-bottom: 1.5px solid #f1f5f9; flex-wrap: wrap; gap: .5rem;
+}
+.sa-table-title {
+  font-family: var(--font-display); font-size: .95rem; font-weight: 700;
+  color: #111; display: flex; align-items: center; gap: .45rem;
+}
+.sa-table-title i { color: #ef4444; }
+.sa-table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+.sa-table thead th {
+  background: #f8fafc; color: #6b7280; font-size: .68rem;
+  font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  padding: .6rem 1rem; text-align: left;
+  border-bottom: 1.5px solid #e2e8f0;
+}
+.sa-table thead th.right { text-align: right; }
+.sa-table tbody td {
+  padding: .75rem 1rem; border-bottom: 1px solid #f1f5f9;
+  color: #374151; vertical-align: middle;
+}
+.sa-table tbody tr:last-child td { border-bottom: none; }
+.sa-table tbody tr:hover td { background: #fafafa; }
+.sa-table tfoot td {
+  padding: .75rem 1rem; border-top: 2px solid #e2e8f0;
+  font-weight: 700; color: #111;
+}
+
+/* Revenue amount cells */
+.sa-amount { font-weight: 700; color: #111; }
+.sa-amount-red { font-weight: 700; color: #ef4444; }
+
+/* Period label pill */
+.sa-period-pill {
+  display: inline-flex; align-items: center; gap: .3rem;
+  font-weight: 700; color: #111; font-size: .84rem;
+}
+
+/* Rank badge */
+.sa-rank {
+  width: 24px; height: 24px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: .72rem; font-weight: 800; flex-shrink: 0;
+}
+.sa-rank-1 { background: #fef3c7; color: #d97706; }
+.sa-rank-2 { background: #f1f5f9; color: #475569; }
+.sa-rank-3 { background: #fef3c7; color: #b45309; }
+.sa-rank-n { background: #f8fafc; color: #9ca3af; }
+
+/* Progress bar */
+.sa-bar-wrap { flex: 1; height: 6px; background: #f1f5f9; border-radius: 99px; overflow: hidden; min-width: 60px; }
+.sa-bar-fill { height: 100%; background: #ef4444; border-radius: 99px; }
+
+/* Badge */
+.sa-badge {
+  display: inline-block; padding: .18rem .65rem; border-radius: 99px;
+  font-size: .7rem; font-weight: 700;
+}
+.sa-badge-red   { background: rgba(239,68,68,0.1);  color: #dc2626; }
+.sa-badge-green { background: rgba(16,185,129,0.1); color: #059669; }
+.sa-badge-gray  { background: #f1f5f9; color: #6b7280; }
+
+/* Empty state */
+.sa-empty {
+  text-align: center; padding: 3.5rem 1rem; color: #9ca3af;
+}
+.sa-empty i { font-size: 2.5rem; display: block; margin-bottom: .75rem; opacity: .3; color: #ef4444; }
+.sa-empty-title { font-size: 1rem; font-weight: 700; color: #374151; margin-bottom: .35rem; }
+
+/* Scrollable table wrapper */
+.sa-table-scroll { overflow-x: auto; }
+
+/* ── Responsive ── */
+@media (max-width: 700px) {
+  .sa-summary { grid-template-columns: 1fr 1fr; }
+  .sa-header  { flex-direction: column; align-items: flex-start; }
+}
+@media (max-width: 420px) {
+  .sa-summary { grid-template-columns: 1fr; }
+}
+</style>
+{% endblock %}
+
+
+{% block content %}
+<div class="container-fluid px-3 py-3" style="max-width:1200px;margin:auto;">
+
+  <!-- ════════════════════════════════════════
+       PAGE HEADER
+  ════════════════════════════════════════ -->
+  <div class="sa-header">
+    <div class="sa-header-left">
+      <h1 class="sa-title">
+        <i class="bi bi-bar-chart-line-fill" style="color:#ef4444;margin-right:.3rem"></i>
+        Sales <span>Analytics</span>
+      </h1>
+      <p class="sa-sub">
+        {% if mode == 'daily' %}Daily breakdown
+        {% elif mode == 'weekly' %}Weekly breakdown
+        {% else %}Monthly breakdown{% endif %}
+        &nbsp;·&nbsp; {{ start_date }} → {{ end_date }}
+        {% if search %}&nbsp;·&nbsp; Filter: "{{ search }}"{% endif %}
+      </p>
+    </div>
+    <div class="sa-header-right">
+      <a href="{{ url_for('dashboard') }}" class="biz-btn biz-btn-ghost"
+         style="border-color:rgba(255,255,255,0.18);color:rgba(0,0,0,1)">
+        <i class="bi bi-speedometer2"></i> Dashboard
+      </a>
+      {% if current_user.role.lower() == 'admin' %}
+      <a href="{{ url_for('profit_report') }}" class="biz-btn biz-btn-danger">
+        <i class="bi bi-graph-up-arrow"></i> Profit Report
+      </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       MODE TABS
+  ════════════════════════════════════════ -->
+  <div class="sa-tabs">
+    <a href="{{ url_for('sales_analytics', mode='daily',
+               start_date=request.args.get('start_date',''),
+               end_date=request.args.get('end_date',''),
+               search=search) }}"
+       class="sa-tab {% if mode == 'daily' %}active{% endif %}">
+      <i class="bi bi-calendar-day-fill"></i> Daily
+    </a>
+    <a href="{{ url_for('sales_analytics', mode='weekly',
+               start_date=request.args.get('start_date',''),
+               end_date=request.args.get('end_date',''),
+               search=search) }}"
+       class="sa-tab {% if mode == 'weekly' %}active{% endif %}">
+      <i class="bi bi-calendar-week-fill"></i> Weekly
+    </a>
+    <a href="{{ url_for('sales_analytics', mode='monthly',
+               start_date=request.args.get('start_date',''),
+               end_date=request.args.get('end_date',''),
+               search=search) }}"
+       class="sa-tab {% if mode == 'monthly' %}active{% endif %}">
+      <i class="bi bi-calendar-month-fill"></i> Monthly
+    </a>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       FILTER BAR
+  ════════════════════════════════════════ -->
+  <form method="GET" action="{{ url_for('sales_analytics') }}">
+    <input type="hidden" name="mode" value="{{ mode }}">
+    <div class="sa-filters">
+      <div class="sa-filter-group">
+        <label class="sa-filter-label">From</label>
+        <input type="date" name="start_date" class="sa-filter-input"
+               value="{{ start_date }}">
+      </div>
+      <div class="sa-filter-group">
+        <label class="sa-filter-label">To</label>
+        <input type="date" name="end_date" class="sa-filter-input"
+               value="{{ end_date }}">
+      </div>
+      <div class="sa-filter-group" style="flex:1;min-width:180px">
+        <label class="sa-filter-label">Search Product</label>
+        <input type="text" name="search" class="sa-filter-input"
+               placeholder="e.g. Bread, Soda…" value="{{ search }}">
+      </div>
+      <button type="submit" class="sa-filter-btn">
+        <i class="bi bi-funnel-fill"></i> Apply
+      </button>
+      <a href="{{ url_for('sales_analytics', mode=mode) }}"
+         class="sa-filter-btn ghost">
+        <i class="bi bi-x"></i> Clear
+      </a>
+    </div>
+  </form>
+
+  <!-- ════════════════════════════════════════
+       SUMMARY CARDS
+  ════════════════════════════════════════ -->
+  <div class="sa-summary">
+
+    <!-- Revenue -->
+    <div class="sa-card" style="--sa-accent:#ef4444" data-stagger>
+      <div class="sa-card-icon" style="background:rgba(239,68,68,0.1);color:#ef4444">
+        <i class="bi bi-cash-stack"></i>
+      </div>
+      <div class="sa-card-label">Total Revenue</div>
+      <div class="sa-card-value" style="color:#ef4444">
+        KES {{ "{:,.2f}".format(total_revenue) }}
+      </div>
+      <div class="sa-card-sub">{{ start_date }} → {{ end_date }}</div>
+    </div>
+
+    <!-- Transactions -->
+    <div class="sa-card" style="--sa-accent:#3b82f6" data-stagger>
+      <div class="sa-card-icon" style="background:rgba(59,130,246,0.1);color:#3b82f6">
+        <i class="bi bi-receipt-cutoff"></i>
+      </div>
+      <div class="sa-card-label">Transactions</div>
+      <div class="sa-card-value" style="color:#3b82f6">{{ total_transactions }}</div>
+      <div class="sa-card-sub">Total sales recorded</div>
+    </div>
+
+    <!-- Units sold -->
+    <div class="sa-card" style="--sa-accent:#10b981" data-stagger>
+      <div class="sa-card-icon" style="background:rgba(16,185,129,0.1);color:#10b981">
+        <i class="bi bi-boxes"></i>
+      </div>
+      <div class="sa-card-label">Units Sold</div>
+      <div class="sa-card-value" style="color:#10b981">{{ total_units }}</div>
+      <div class="sa-card-sub">Items moved</div>
+    </div>
+
+    <!-- Avg per period -->
+    <div class="sa-card" style="--sa-accent:#8b5cf6" data-stagger>
+      <div class="sa-card-icon" style="background:rgba(139,92,246,0.1);color:#8b5cf6">
+        <i class="bi bi-graph-up"></i>
+      </div>
+      <div class="sa-card-label">Avg / {{ period_label }}</div>
+      <div class="sa-card-value" style="color:#8b5cf6">
+        KES {{ "{:,.2f}".format(avg_per_period) }}
+      </div>
+      <div class="sa-card-sub">Average revenue per {{ mode }} period</div>
+    </div>
+
+    <!-- VAT collected -->
+    <div class="sa-card" style="--sa-accent:#f59e0b" data-stagger>
+      <div class="sa-card-icon" style="background:rgba(245,158,11,0.1);color:#f59e0b">
+        <i class="bi bi-percent"></i>
+      </div>
+      <div class="sa-card-label">VAT Collected</div>
+      <div class="sa-card-value" style="color:#f59e0b">
+        KES {{ "{:,.2f}".format(total_tax) }}
+      </div>
+      <div class="sa-card-sub">Extracted at 16% VAT-inclusive</div>
+    </div>
+
+    <!-- Discounts given -->
+    <div class="sa-card" style="--sa-accent:#f97316" data-stagger>
+      <div class="sa-card-icon" style="background:rgba(249,115,22,0.1);color:#f97316">
+        <i class="bi bi-tag-fill"></i>
+      </div>
+      <div class="sa-card-label">Discounts Given</div>
+      <div class="sa-card-value" style="color:#f97316">
+        KES {{ "{:,.2f}".format(total_discounts) }}
+      </div>
+      <div class="sa-card-sub">Total deducted</div>
+    </div>
+
+  </div>
+
+
+  <!-- ════════════════════════════════════════
+       REVENUE CHART
+  ════════════════════════════════════════ -->
+  <div class="sa-chart-card">
+    <div class="sa-chart-header">
+      <div class="sa-chart-title">
+        <i class="bi bi-bar-chart-fill"></i>
+        Revenue Trend —
+        {% if mode == 'daily' %}Daily{% elif mode == 'weekly' %}Weekly{% else %}Monthly{% endif %}
+      </div>
+      <span class="sa-badge sa-badge-red">{{ rows|length }} period(s)</span>
+    </div>
+    <canvas id="saChart" style="max-height:260px"></canvas>
+  </div>
+
+
+  <!-- ════════════════════════════════════════
+       PERIOD BREAKDOWN TABLE
+  ════════════════════════════════════════ -->
+  <div class="sa-table-card">
+    <div class="sa-table-header">
+      <div class="sa-table-title">
+        <i class="bi bi-table"></i>
+        {% if mode == 'daily' %}Daily{% elif mode == 'weekly' %}Weekly{% else %}Monthly{% endif %}
+        Breakdown
+      </div>
+      <span class="sa-badge sa-badge-gray">{{ rows|length }} row(s)</span>
+    </div>
+    <div class="sa-table-scroll">
+      <table class="sa-table">
+        <thead>
+          <tr>
+            <th>{{ period_label }}</th>
+            <th class="right">Revenue (KES)</th>
+            <th class="right">Units</th>
+            <th class="right">Transactions</th>
+            <th class="right">Discounts (KES)</th>
+            <th class="right">VAT (KES)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+          <tr>
+            <td>
+              <span class="sa-period-pill">
+                <i class="bi bi-calendar3" style="color:#ef4444;font-size:.78rem"></i>
+                {{ r.period }}
+              </span>
+            </td>
+            <td style="text-align:right" class="sa-amount-red">
+              {{ "{:,.2f}".format(r.revenue or 0) }}
+            </td>
+            <td style="text-align:right">
+              <span class="sa-badge sa-badge-green">{{ r.units or 0 }}</span>
+            </td>
+            <td style="text-align:right">
+              <span class="sa-badge sa-badge-gray">{{ r.transactions or 0 }}</span>
+            </td>
+            <td style="text-align:right;color:#f97316;font-weight:600">
+              {{ "{:,.2f}".format(r.discounts or 0) }}
+            </td>
+            <td style="text-align:right;color:#f59e0b;font-weight:600">
+              {{ "{:,.2f}".format(((r.revenue or 0) * 0.16 / 1.16)) }}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6">
+              <div class="sa-empty">
+                <i class="bi bi-inbox"></i>
+                <div class="sa-empty-title">No sales found</div>
+                <p>Try adjusting the date range or clearing the search filter.</p>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        {% if rows %}
+        <tfoot>
+          <tr>
+            <td style="color:#9ca3af;font-size:.8rem">TOTAL</td>
+            <td style="text-align:right;color:#ef4444">
+              {{ "{:,.2f}".format(total_revenue) }}
+            </td>
+            <td style="text-align:right">{{ total_units }}</td>
+            <td style="text-align:right">{{ total_transactions }}</td>
+            <td style="text-align:right;color:#f97316">
+              {{ "{:,.2f}".format(total_discounts) }}
+            </td>
+            <td style="text-align:right;color:#f59e0b">
+              {{ "{:,.2f}".format(total_tax) }}
+            </td>
+          </tr>
+        </tfoot>
+        {% endif %}
+      </table>
+    </div>
+  </div>
+
+
+  <!-- ════════════════════════════════════════
+       TOP PRODUCTS TABLE  (admin-only detail)
+  ════════════════════════════════════════ -->
+  {% if current_user.role.lower() == 'admin' %}
+  <div class="sa-table-card">
+    <div class="sa-table-header">
+      <div class="sa-table-title">
+        <i class="bi bi-trophy-fill"></i> Top Products
+      </div>
+      <span class="sa-badge sa-badge-red">{{ top_products|length }} product(s)</span>
+    </div>
+    <div class="sa-table-scroll">
+      <table class="sa-table">
+        <thead>
+          <tr>
+            <th style="width:40px">#</th>
+            <th>Product</th>
+            <th class="right">Revenue (KES)</th>
+            <th class="right">Units Sold</th>
+            <th class="right">Transactions</th>
+            <th style="min-width:120px">Share</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in top_products %}
+          <tr>
+            <td>
+              <span class="sa-rank
+                {% if loop.index == 1 %}sa-rank-1
+                {% elif loop.index == 2 %}sa-rank-2
+                {% elif loop.index == 3 %}sa-rank-3
+                {% else %}sa-rank-n{% endif %}">
+                {{ loop.index }}
+              </span>
+            </td>
+            <td style="font-weight:600;color:#111">{{ p.product_name }}</td>
+            <td style="text-align:right" class="sa-amount-red">
+              {{ "{:,.2f}".format(p.revenue or 0) }}
+            </td>
+            <td style="text-align:right">
+              <span class="sa-badge sa-badge-green">{{ p.units or 0 }}</span>
+            </td>
+            <td style="text-align:right">
+              <span class="sa-badge sa-badge-gray">{{ p.transactions or 0 }}</span>
+            </td>
+            <td>
+              <div style="display:flex;align-items:center;gap:.5rem">
+                <div class="sa-bar-wrap">
+                  <div class="sa-bar-fill"
+                       style="width:{{ [((p.revenue / total_revenue * 100) if total_revenue > 0 else 0)|round(1), 100]|min }}%">
+                  </div>
+                </div>
+                <span style="font-size:.75rem;color:#9ca3af;white-space:nowrap">
+                  {{ ((p.revenue / total_revenue * 100) if total_revenue > 0 else 0)|round(1) }}%
+                </span>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6">
+            <div class="sa-empty">
+              <i class="bi bi-box-seam"></i>
+              <div class="sa-empty-title">No product data</div>
+            </div>
+          </td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+
+  <!-- ════════════════════════════════════════
+       INDIVIDUAL SALE LINES
+       (shows when search is active OR admin)
+  ════════════════════════════════════════ -->
+  {% if search or current_user.role.lower() == 'admin' %}
+  <div class="sa-table-card">
+    <div class="sa-table-header">
+      <div class="sa-table-title">
+        <i class="bi bi-list-ul"></i>
+        Individual Sales
+        {% if search %}
+          <span class="sa-badge sa-badge-red" style="margin-left:.4rem">
+            "{{ search }}"
+          </span>
+        {% endif %}
+      </div>
+      <span class="sa-badge sa-badge-gray">
+        {{ sale_lines|length }} record(s){% if sale_lines|length == 200 %} (capped at 200){% endif %}
+      </span>
+    </div>
+    <div class="sa-table-scroll" style="max-height:420px;overflow-y:auto">
+      <table class="sa-table">
+        <thead style="position:sticky;top:0;z-index:1">
+          <tr>
+            <th>#ID</th>
+            <th>Date / Time (EAT)</th>
+            <th>Product</th>
+            <th class="right">Qty</th>
+            <th class="right">Unit Price</th>
+            <th class="right">Discount</th>
+            <th class="right">Total (KES)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in sale_lines %}
+          <tr>
+            <td style="font-family:'Courier New',monospace;font-size:.76rem;color:#9ca3af">
+              #{{ s.id }}
+            </td>
+            <td style="color:#6b7280;font-size:.8rem;white-space:nowrap">
+              {{ s.timestamp.strftime('%d %b %Y  %H:%M') if s.timestamp else '—' }}
+            </td>
+            <td style="font-weight:600;color:#111">{{ s.product_name }}</td>
+            <td style="text-align:right">
+              <span class="sa-badge sa-badge-gray">{{ s.quantity_sold }}</span>
+            </td>
+            <td style="text-align:right;color:#374151">
+              {{ "{:,.2f}".format(s.unit_price or 0) }}
+            </td>
+            <td style="text-align:right;color:#f97316">
+              {% if s.discount and s.discount > 0 %}
+                {{ "{:,.2f}".format(s.discount) }}
+              {% else %}—{% endif %}
+            </td>
+            <td style="text-align:right" class="sa-amount-red">
+              {{ "{:,.2f}".format(s.total_amount or s.total_price or 0) }}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="7">
+            <div class="sa-empty">
+              <i class="bi bi-receipt"></i>
+              <div class="sa-empty-title">No individual records found</div>
+            </div>
+          </td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+</div><!-- /container -->
+{% endblock %}
+
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+  /* ── Revenue Trend Chart ───────────────────────────────── */
+  var chartLabels = {{ chart_labels | tojson }};
+  var chartValues = {{ chart_values | tojson }};
+
+  var ctx = document.getElementById('saChart');
+  if (ctx && chartLabels.length > 0) {
+    new Chart(ctx.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: chartLabels,
+        datasets: [{
+          label: 'Revenue (KES)',
+          data: chartValues,
+          backgroundColor: function(context) {
+            var chart = context.chart;
+            var ctx2  = chart.ctx;
+            var gradient = ctx2.createLinearGradient(0, 0, 0, 260);
+            gradient.addColorStop(0,   'rgba(239,68,68,0.85)');
+            gradient.addColorStop(1,   'rgba(239,68,68,0.1)');
+            return gradient;
+          },
+          borderColor:  '#ef4444',
+          borderWidth:  2,
+          borderRadius: 8,
+          borderSkipped: false,
+          hoverBackgroundColor: '#dc2626',
+        }]
+      },
+      options: {
+        responsive: true,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function (ctx) {
+                return ' KES ' + ctx.parsed.y.toLocaleString('en-KE', { minimumFractionDigits: 2 });
+              }
+            },
+            backgroundColor: '#111',
+            titleColor: '#fff',
+            bodyColor: '#ef4444',
+            borderColor: 'rgba(239,68,68,0.3)',
+            borderWidth: 1,
+            padding: 10
+          }
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { font: { family: 'DM Sans', size: 11 }, color: '#9ca3af' }
+          },
+          y: {
+            grid: { color: 'rgba(0,0,0,0.05)' },
+            ticks: {
+              font: { family: 'DM Sans', size: 11 },
+              color: '#9ca3af',
+              callback: function (v) {
+                return v >= 1000 ? 'K' + (v / 1000).toFixed(0) : v;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  /* ── Card stagger animations ─────────────────────────────── */
+  document.querySelectorAll('[data-stagger]').forEach(function (el, i) {
+    el.style.animationDelay = (i * 0.055) + 's';
+  });
+
+});
+</script>
+{% endblock %}

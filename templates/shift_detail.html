@@ -1,0 +1,254 @@
+{% extends 'base.html' %}
+{% block title %}Shift #{{ shift.id }} — BizTool POS{% endblock %}
+
+{% block head %}
+<style>
+.sd-header {
+  background:linear-gradient(135deg,#0e0e0e 0%,#1a0000 100%);
+  border-radius:var(--r-lg); padding:1.75rem 2.25rem;
+  display:flex; align-items:center; justify-content:space-between;
+  gap:1.5rem; margin-bottom:1.25rem;
+  border:1.5px solid rgba(220,38,38,0.25); position:relative; overflow:hidden;
+  animation:card-in .4s var(--ease) both;
+}
+.sd-header::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse 55% 80% at 0% 60%,rgba(220,38,38,0.14) 0%,transparent 60%); pointer-events:none; }
+.sd-header-left { position:relative; z-index:1; }
+.sd-header-right { position:relative; z-index:1; display:flex; gap:.6rem; flex-wrap:wrap; }
+.sd-title { font-family:var(--font-display); font-size:1.5rem; font-weight:800; color:#fff; letter-spacing:-0.03em; margin:0 0 .25rem; }
+.sd-title span { color:#ef4444; }
+.sd-sub { font-size:.82rem; color:rgba(255,255,255,0.4); margin:0; }
+
+/* Summary grid */
+.sd-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:1rem; margin-bottom:1.5rem; }
+.sd-card {
+  background:#fff; border:1.5px solid #e8e8e8; border-radius:var(--r-lg);
+  padding:1.1rem 1.25rem; position:relative; overflow:hidden;
+  box-shadow:0 2px 8px rgba(0,0,0,0.05);
+  animation:card-in .4s var(--ease) both;
+}
+.sd-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--sd-accent,#ef4444); }
+.sd-card-icon { width:36px; height:36px; border-radius:var(--r-sm); display:flex; align-items:center; justify-content:center; font-size:.95rem; margin-bottom:.3rem; }
+.sd-card-label { font-size:.63rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:#9ca3af; }
+.sd-card-value { font-family:var(--font-display); font-size:1.35rem; font-weight:800; color:#111; letter-spacing:-0.025em; }
+
+/* Variance callout */
+.variance-callout {
+  border-radius:var(--r-lg); padding:1.1rem 1.4rem;
+  display:flex; align-items:center; gap:.85rem; margin-bottom:1.25rem;
+  animation:card-in .4s .08s var(--ease) both;
+}
+.variance-callout.surplus  { background:rgba(16,185,129,0.08); border:1.5px solid rgba(16,185,129,0.3); }
+.variance-callout.shortage { background:rgba(239,68,68,0.08);  border:1.5px solid rgba(239,68,68,0.3); }
+.variance-callout.balanced { background:#f8fafc; border:1.5px solid #e2e8f0; }
+.vc-icon { width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.2rem; flex-shrink:0; }
+
+/* Receipts table */
+.sd-table-card { background:#fff; border:1.5px solid #e8e8e8; border-radius:var(--r-lg); box-shadow:0 2px 8px rgba(0,0,0,0.04); overflow:hidden; animation:card-in .4s .12s var(--ease) both; }
+.sd-table-header { display:flex; align-items:center; justify-content:space-between; padding:1.1rem 1.4rem; border-bottom:1.5px solid #f1f5f9; }
+.sd-table-title { font-family:var(--font-display); font-size:.95rem; font-weight:700; color:#111; display:flex; align-items:center; gap:.45rem; }
+.sd-table-title i { color:#ef4444; }
+.sd-table { width:100%; border-collapse:collapse; font-size:.84rem; }
+.sd-table thead th { background:#f8fafc; color:#6b7280; font-size:.67rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; padding:.6rem 1rem; text-align:left; border-bottom:1.5px solid #e2e8f0; }
+.sd-table tbody td { padding:.75rem 1rem; border-bottom:1px solid #f1f5f9; color:#374151; vertical-align:middle; }
+.sd-table tbody tr:last-child td { border-bottom:none; }
+.sd-table tbody tr:hover td { background:#fafafa; }
+
+/* Notes card */
+.notes-card { background:#fff; border:1.5px solid #e8e8e8; border-radius:var(--r-lg); padding:1.25rem 1.4rem; box-shadow:0 2px 8px rgba(0,0,0,0.04); margin-bottom:1.25rem; animation:card-in .4s .16s var(--ease) both; }
+
+/* Close shift inline (open shifts) */
+.biz-modal .modal-content { background:#fff; border:none; border-radius:var(--r-lg); box-shadow:0 24px 64px rgba(0,0,0,0.15); }
+.biz-modal .modal-header  { background:#0a0a0a; border-bottom:2px solid #ef4444; padding:1.1rem 1.4rem; }
+.biz-modal .modal-title   { font-family:var(--font-display); font-weight:700; font-size:1rem; color:#fff; }
+.biz-modal .modal-body    { padding:1.4rem; }
+.biz-modal .modal-footer  { padding:1rem 1.4rem; border-top:1px solid #f1f5f9; gap:.5rem; }
+.biz-form-label { font-size:.78rem; font-weight:700; color:#374151; display:block; margin-bottom:.3rem; }
+.biz-form-input { width:100%; padding:.48rem .9rem; border:1.5px solid #e2e8f0; border-radius:var(--r-sm); font-size:.84rem; color:#111; background:#f8fafc; outline:none; transition:border-color var(--t); font-family:var(--font-body); }
+.biz-form-input:focus { border-color:#ef4444; background:#fff; }
+</style>
+{% endblock %}
+
+
+{% block content %}
+<div class="container-fluid px-3 py-3" style="max-width:1100px;margin:auto">
+
+  <!-- PAGE HEADER -->
+  <div class="sd-header">
+    <div class="sd-header-left">
+      <h1 class="sd-title">Shift <span>#{{ shift.id }}</span></h1>
+      <p class="sd-sub">
+        {{ shift.user.full_name or shift.user.username }}
+        &nbsp;·&nbsp; Opened {{ shift.opened_at.strftime('%d %b %Y at %H:%M') }}
+        {% if shift.closed_at %}&nbsp;·&nbsp; Closed {{ shift.closed_at.strftime('%H:%M') }}{% endif %}
+      </p>
+    </div>
+    <div class="sd-header-right">
+      {% if shift.status == 'Open' and (shift.user_id == current_user.id or is_admin) %}
+      <button class="biz-btn biz-btn-danger" data-bs-toggle="modal" data-bs-target="#closeModal">
+        <i class="bi bi-stop-circle-fill"></i> Close Shift
+      </button>
+      {% endif %}
+      <a href="{{ url_for('shifts') }}" class="biz-btn biz-btn-ghost"
+         style="border-color:rgba(255,255,255,0.18);color:rgba(0,0,0,0.8)">
+        <i class="bi bi-arrow-left"></i> All Shifts
+      </a>
+    </div>
+  </div>
+
+  <!-- CASH VARIANCE CALLOUT -->
+  {% if shift.status == 'Closed' %}
+  {% set v = shift.cash_variance or 0 %}
+  <div class="variance-callout {% if v > 0 %}surplus{% elif v < 0 %}shortage{% else %}balanced{% endif %}">
+    <div class="vc-icon {% if v > 0 %}bg-success-subtle{% elif v < 0 %}bg-danger-subtle{% else %}bg-light{% endif %}"
+         style="background:{% if v > 0 %}rgba(16,185,129,0.15){% elif v < 0 %}rgba(239,68,68,0.15){% else %}#f1f5f9{% endif %}">
+      <i class="bi bi-{% if v > 0 %}arrow-up-circle-fill{% elif v < 0 %}exclamation-triangle-fill{% else %}check-circle-fill{% endif %}"
+         style="color:{% if v > 0 %}#10b981{% elif v < 0 %}#ef4444{% else %}#9ca3af{% endif %}"></i>
+    </div>
+    <div>
+      <div style="font-weight:700;color:#111;font-size:.95rem">
+        {% if v > 0 %}Cash Surplus: KES {{ "{:,.2f}".format(v) }}
+        {% elif v < 0 %}Cash Shortage: KES {{ "{:,.2f}".format(v|abs) }}
+        {% else %}Cash Balanced — No Variance{% endif %}
+      </div>
+      <div style="font-size:.78rem;color:#6b7280;margin-top:.15rem">
+        Expected: KES {{ "{:,.2f}".format(shift.expected_cash or 0) }}
+        &nbsp;·&nbsp; Actual counted: KES {{ "{:,.2f}".format(shift.actual_cash or 0) }}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- SUMMARY CARDS -->
+  <div class="sd-grid">
+    <div class="sd-card" style="--sd-accent:#ef4444">
+      <div class="sd-card-icon" style="background:rgba(239,68,68,0.1);color:#ef4444"><i class="bi bi-cash-stack"></i></div>
+      <div class="sd-card-label">Total Revenue</div>
+      <div class="sd-card-value" style="color:#ef4444;font-size:1.1rem">KES {{ "{:,.2f}".format(shift.total_sales or 0) }}</div>
+    </div>
+    <div class="sd-card" style="--sd-accent:#10b981">
+      <div class="sd-card-icon" style="background:rgba(16,185,129,0.1);color:#10b981"><i class="bi bi-cash"></i></div>
+      <div class="sd-card-label">Cash Sales</div>
+      <div class="sd-card-value" style="color:#10b981;font-size:1.1rem">KES {{ "{:,.2f}".format(shift.total_cash or 0) }}</div>
+    </div>
+    <div class="sd-card" style="--sd-accent:#3b82f6">
+      <div class="sd-card-icon" style="background:rgba(59,130,246,0.1);color:#3b82f6"><i class="bi bi-phone-fill"></i></div>
+      <div class="sd-card-label">M-Pesa</div>
+      <div class="sd-card-value" style="color:#3b82f6;font-size:1.1rem">KES {{ "{:,.2f}".format(shift.total_mpesa or 0) }}</div>
+    </div>
+    <div class="sd-card" style="--sd-accent:#f59e0b">
+      <div class="sd-card-icon" style="background:rgba(245,158,11,0.1);color:#f59e0b"><i class="bi bi-receipt-cutoff"></i></div>
+      <div class="sd-card-label">Transactions</div>
+      <div class="sd-card-value">{{ shift.transaction_count or 0 }}</div>
+    </div>
+    <div class="sd-card" style="--sd-accent:#8b5cf6">
+      <div class="sd-card-icon" style="background:rgba(139,92,246,0.1);color:#8b5cf6"><i class="bi bi-tag-fill"></i></div>
+      <div class="sd-card-label">Discounts</div>
+      <div class="sd-card-value" style="font-size:1.1rem">KES {{ "{:,.2f}".format(shift.total_discounts or 0) }}</div>
+    </div>
+    <div class="sd-card" style="--sd-accent:#6b7280">
+      <div class="sd-card-icon" style="background:#f1f5f9;color:#6b7280"><i class="bi bi-wallet2"></i></div>
+      <div class="sd-card-label">Opening Float</div>
+      <div class="sd-card-value" style="font-size:1.1rem">KES {{ "{:,.2f}".format(shift.opening_float or 0) }}</div>
+    </div>
+  </div>
+
+  <!-- CLOSING NOTES -->
+  {% if shift.closing_notes %}
+  <div class="notes-card">
+    <div style="font-size:.78rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#9ca3af;margin-bottom:.5rem">
+      <i class="bi bi-sticky" style="color:#ef4444;margin-right:.3rem"></i> Closing Notes
+    </div>
+    <div style="color:#374151;font-size:.9rem">{{ shift.closing_notes }}</div>
+  </div>
+  {% endif %}
+
+  <!-- RECEIPTS PROCESSED DURING SHIFT -->
+  <div class="sd-table-card">
+    <div class="sd-table-header">
+      <div class="sd-table-title"><i class="bi bi-receipt"></i> Receipts Processed</div>
+      <span style="font-size:.78rem;color:#9ca3af">{{ receipts | length }} receipt(s)</span>
+    </div>
+    <div style="overflow-x:auto;max-height:420px;overflow-y:auto">
+      <table class="sd-table">
+        <thead style="position:sticky;top:0;z-index:1">
+          <tr>
+            <th>Receipt #</th>
+            <th>Time</th>
+            <th>Customer</th>
+            <th style="text-align:right">Amount (KES)</th>
+            <th style="text-align:right">Paid</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in receipts %}
+          <tr>
+            <td style="font-family:'Courier New',monospace;font-size:.75rem;color:#9ca3af">#{{ r.id }}</td>
+            <td style="color:#6b7280;font-size:.8rem">{{ r.timestamp.strftime('%H:%M') }}</td>
+            <td style="color:#374151">{{ r.customer_name or 'Walk-in' }}</td>
+            <td style="text-align:right;font-weight:700;color:#111">{{ "{:,.2f}".format(r.total_amount or 0) }}</td>
+            <td style="text-align:right;color:#10b981">{{ "{:,.2f}".format(r.amount_paid or 0) }}</td>
+            <td>
+              {% if r.status == 'Paid' %}
+                <span style="background:rgba(16,185,129,0.1);color:#059669;border-radius:99px;padding:.18rem .65rem;font-size:.7rem;font-weight:700">Paid</span>
+              {% elif r.status == 'Partially Paid' %}
+                <span style="background:rgba(245,158,11,0.1);color:#d97706;border-radius:99px;padding:.18rem .65rem;font-size:.7rem;font-weight:700">Partial</span>
+              {% elif r.status == 'Cancelled' %}
+                <span style="background:#f1f5f9;color:#9ca3af;border-radius:99px;padding:.18rem .65rem;font-size:.7rem;font-weight:700">Cancelled</span>
+              {% else %}
+                <span style="background:rgba(239,68,68,0.1);color:#dc2626;border-radius:99px;padding:.18rem .65rem;font-size:.7rem;font-weight:700">Open</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" style="text-align:center;padding:2.5rem;color:#9ca3af">
+              <i class="bi bi-receipt" style="font-size:1.8rem;display:block;margin-bottom:.5rem;opacity:.3;color:#ef4444"></i>
+              No receipts found for this shift window.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+
+<!-- CLOSE SHIFT MODAL (shown only for open shifts) -->
+{% if shift.status == 'Open' %}
+<div class="modal fade biz-modal" id="closeModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-stop-circle-fill me-2" style="color:#ef4444"></i>Close Shift #{{ shift.id }}</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="{{ url_for('close_shift', shift_id=shift.id) }}">
+        <div class="modal-body">
+          <div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:var(--r-sm);padding:.85rem 1rem;margin-bottom:1rem;font-size:.83rem;color:#374151">
+            Opened: <strong>{{ shift.opened_at.strftime('%d %b %Y at %H:%M') }}</strong><br>
+            Opening float: <strong>KES {{ "{:,.2f}".format(shift.opening_float or 0) }}</strong>
+          </div>
+          <div style="margin-bottom:.9rem">
+            <label class="biz-form-label">Actual Cash in Till (KES) <span style="color:#ef4444">*</span></label>
+            <input type="number" name="actual_cash" class="biz-form-input"
+                   placeholder="Count all cash including float" min="0" step="0.01" required>
+          </div>
+          <div>
+            <label class="biz-form-label">Closing Notes <span style="color:#9ca3af;font-weight:400">(optional)</span></label>
+            <textarea name="closing_notes" class="biz-form-input" rows="2"
+                      placeholder="Any issues or notes…" style="resize:vertical"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="biz-btn biz-btn-ghost" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="biz-btn biz-btn-danger"><i class="bi bi-stop-circle-fill"></i> Close & Reconcile</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,437 @@
+{% extends 'base.html' %}
+{% block title %}Staff Management — BizTool POS{% endblock %}
+
+{% block head %}
+<style>
+/* ═══════════════════════════════════════════════════════
+   STAFF MANAGEMENT PAGE
+   White background · Red/black accents
+═══════════════════════════════════════════════════════ */
+.st-header {
+  background: linear-gradient(135deg, #0e0e0e 0%, #1a0000 100%);
+  border-radius: var(--r-lg); padding: 1.75rem 2.25rem;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 1.5rem; margin-bottom: 1.25rem;
+  border: 1.5px solid rgba(220,38,38,0.25);
+  position: relative; overflow: hidden;
+  animation: card-in .4s var(--ease) both;
+}
+.st-header::before {
+  content:''; position:absolute; inset:0;
+  background: radial-gradient(ellipse 55% 80% at 0% 60%, rgba(220,38,38,0.14) 0%, transparent 60%);
+  pointer-events:none;
+}
+.st-header-left  { position:relative; z-index:1; }
+.st-header-right { position:relative; z-index:1; }
+.st-title { font-family:var(--font-display); font-size:1.5rem; font-weight:800; color:#fff; letter-spacing:-0.03em; margin:0 0 .25rem; }
+.st-title span { color:#ef4444; }
+.st-sub   { font-size:.82rem; color:rgba(255,255,255,0.4); margin:0; }
+
+/* Stats row */
+.st-stats {
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(170px,1fr));
+  gap:1rem; margin-bottom:1.5rem;
+}
+.st-stat {
+  background:#fff; border:1.5px solid #e8e8e8; border-radius:var(--r-lg);
+  padding:1.1rem 1.25rem; position:relative; overflow:hidden;
+  box-shadow:0 2px 8px rgba(0,0,0,0.05);
+  transition:transform var(--t), box-shadow var(--t), border-color var(--t);
+  animation: card-in .4s var(--ease) both;
+}
+.st-stat::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--st-accent,#ef4444); }
+.st-stat:hover { transform:translateY(-4px); box-shadow:0 10px 24px rgba(0,0,0,0.1); border-color:var(--st-accent,#ef4444); }
+.st-stat-icon { width:36px; height:36px; border-radius:var(--r-sm); display:flex; align-items:center; justify-content:center; font-size:.95rem; margin-bottom:.3rem; }
+.st-stat-label { font-size:.63rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:#9ca3af; }
+.st-stat-value { font-family:var(--font-display); font-size:1.5rem; font-weight:800; color:#111; letter-spacing:-0.025em; line-height:1.05; }
+
+/* Staff table card */
+.st-card {
+  background:#fff; border:1.5px solid #e8e8e8; border-radius:var(--r-lg);
+  box-shadow:0 2px 8px rgba(0,0,0,0.04); overflow:hidden;
+  animation: card-in .4s .1s var(--ease) both;
+}
+.st-card-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:1.1rem 1.4rem; border-bottom:1.5px solid #f1f5f9; flex-wrap:wrap; gap:.5rem;
+}
+.st-card-title { font-family:var(--font-display); font-size:.95rem; font-weight:700; color:#111; display:flex; align-items:center; gap:.45rem; }
+.st-card-title i { color:#ef4444; }
+
+.st-table { width:100%; border-collapse:collapse; font-size:.84rem; }
+.st-table thead th { background:#f8fafc; color:#6b7280; font-size:.67rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; padding:.6rem 1rem; text-align:left; border-bottom:1.5px solid #e2e8f0; }
+.st-table tbody td { padding:.75rem 1rem; border-bottom:1px solid #f1f5f9; color:#374151; vertical-align:middle; }
+.st-table tbody tr:last-child td { border-bottom:none; }
+.st-table tbody tr:hover td { background:#fafafa; }
+
+/* Avatar */
+.st-avatar {
+  width:38px; height:38px; border-radius:50%; background:#ef4444;
+  display:inline-flex; align-items:center; justify-content:center;
+  font-size:.88rem; font-weight:800; color:#fff; flex-shrink:0;
+}
+.st-avatar.inactive { background:#d1d5db; color:#6b7280; }
+
+/* Role badge */
+.role-badge {
+  display:inline-block; padding:.2rem .7rem; border-radius:99px;
+  font-size:.7rem; font-weight:700;
+}
+.role-admin    { background:rgba(239,68,68,0.12);  color:#dc2626; }
+.role-manager  { background:rgba(139,92,246,0.12); color:#7c3aed; }
+.role-stock    { background:rgba(59,130,246,0.12);  color:#1d4ed8; }
+.role-cashier  { background:rgba(16,185,129,0.1);  color:#059669; }
+.role-inactive { background:#f1f5f9; color:#9ca3af; }
+
+/* Action buttons */
+.st-btn { display:inline-flex; align-items:center; gap:.35rem; padding:.38rem .8rem; border-radius:var(--r-sm); font-size:.78rem; font-weight:600; border:1.5px solid; cursor:pointer; transition:all var(--t); text-decoration:none; }
+.st-btn-edit   { background:#fff; border-color:#e2e8f0; color:#374151; }
+.st-btn-edit:hover { border-color:#ef4444; color:#ef4444; }
+.st-btn-toggle { background:#fff; border-color:#e2e8f0; color:#374151; }
+.st-btn-toggle:hover { border-color:#f97316; color:#f97316; }
+.st-btn-red    { background:#ef4444; border-color:#ef4444; color:#fff; }
+.st-btn-red:hover { background:#dc2626; }
+
+/* Open shift indicator */
+.shift-open-dot {
+  width:8px; height:8px; border-radius:50%; background:#10b981;
+  display:inline-block; margin-right:.35rem;
+  animation:dot-pulse 2s ease-in-out infinite;
+}
+
+/* Modal overrides */
+.biz-modal .modal-content { background:#fff; border:none; border-radius:var(--r-lg); box-shadow:0 24px 64px rgba(0,0,0,0.15); }
+.biz-modal .modal-header  { background:#0a0a0a; border-bottom:2px solid #ef4444; padding:1.1rem 1.4rem; }
+.biz-modal .modal-title   { font-family:var(--font-display); font-weight:700; font-size:1rem; color:#fff; }
+.biz-modal .modal-body    { padding:1.4rem; }
+.biz-modal .modal-footer  { padding:1rem 1.4rem; border-top:1px solid #f1f5f9; gap:.5rem; }
+.biz-form-label { font-size:.78rem; font-weight:700; color:#374151; display:block; margin-bottom:.3rem; }
+.biz-form-label .req { color:#ef4444; }
+.biz-form-input {
+  width:100%; padding:.48rem .9rem; border:1.5px solid #e2e8f0;
+  border-radius:var(--r-sm); font-size:.84rem; color:#111;
+  background:#f8fafc; outline:none; transition:border-color var(--t);
+  font-family:var(--font-body);
+}
+.biz-form-input:focus { border-color:#ef4444; background:#fff; }
+.biz-form-row  { display:grid; grid-template-columns:1fr 1fr; gap:.75rem; }
+.biz-form-group { margin-bottom:.9rem; }
+@media(max-width:520px){ .biz-form-row { grid-template-columns:1fr; } }
+</style>
+{% endblock %}
+
+
+{% block content %}
+<div class="container-fluid px-3 py-3" style="max-width:1200px;margin:auto">
+
+  <!-- ═══════════════════════════ PAGE HEADER ═══════════════════════════ -->
+  <div class="st-header">
+    <div class="st-header-left">
+      <h1 class="st-title"><i class="bi bi-people-fill" style="color:#ef4444;margin-right:.3rem"></i>Staff <span>Management</span></h1>
+      <p class="st-sub">Manage employees, roles, and shift accountability.</p>
+    </div>
+    <div class="st-header-right">
+      <button class="st-btn st-btn-red" data-bs-toggle="modal" data-bs-target="#addStaffModal">
+        <i class="bi bi-person-plus-fill"></i> Add Staff Member
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════ STAT CARDS ═══════════════════════════ -->
+  <div class="st-stats">
+    {% set active_count   = all_staff | selectattr('is_active') | list | length %}
+    {% set inactive_count = all_staff | length - active_count %}
+    {% set open_shifts    = all_staff | selectattr('is_active') | list | length %}
+
+    <div class="st-stat" style="--st-accent:#ef4444">
+      <div class="st-stat-icon" style="background:rgba(239,68,68,0.1);color:#ef4444"><i class="bi bi-people-fill"></i></div>
+      <div class="st-stat-label">Total Staff</div>
+      <div class="st-stat-value">{{ all_staff | length }}</div>
+    </div>
+    <div class="st-stat" style="--st-accent:#10b981">
+      <div class="st-stat-icon" style="background:rgba(16,185,129,0.1);color:#10b981"><i class="bi bi-person-check-fill"></i></div>
+      <div class="st-stat-label">Active</div>
+      <div class="st-stat-value" style="color:#10b981">{{ active_count }}</div>
+    </div>
+    <div class="st-stat" style="--st-accent:#9ca3af">
+      <div class="st-stat-icon" style="background:#f1f5f9;color:#9ca3af"><i class="bi bi-person-dash-fill"></i></div>
+      <div class="st-stat-label">Inactive</div>
+      <div class="st-stat-value" style="color:#9ca3af">{{ inactive_count }}</div>
+    </div>
+    {% set open_shift_count = shift_stats.values() | selectattr('open_shift') | list | length %}
+    <div class="st-stat" style="--st-accent:#3b82f6">
+      <div class="st-stat-icon" style="background:rgba(59,130,246,0.1);color:#3b82f6"><i class="bi bi-clock-fill"></i></div>
+      <div class="st-stat-label">Shifts Open Now</div>
+      <div class="st-stat-value" style="color:#3b82f6">{{ open_shift_count }}</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════ STAFF TABLE ══════════════════════════ -->
+  <div class="st-card">
+    <div class="st-card-header">
+      <div class="st-card-title"><i class="bi bi-table"></i> All Staff</div>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="st-table">
+        <thead>
+          <tr>
+            <th>Staff Member</th>
+            <th>Role</th>
+            <th>Phone</th>
+            <th>Hire Date</th>
+            <th>Salary (KES)</th>
+            <th>Shifts Done</th>
+            <th>Last Shift</th>
+            <th>Status</th>
+            <th style="text-align:center">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in all_staff %}
+          {% set stats = shift_stats.get(u.id, {}) %}
+          <tr>
+            <!-- Avatar + name -->
+            <td>
+              <div style="display:flex;align-items:center;gap:.65rem">
+                <div class="st-avatar {% if not u.is_active %}inactive{% endif %}">
+                  {{ (u.full_name or u.username)[0] | upper }}
+                </div>
+                <div>
+                  <div style="font-weight:700;color:#111">{{ u.full_name or u.username }}</div>
+                  <div style="font-size:.75rem;color:#9ca3af">@{{ u.username }}</div>
+                </div>
+              </div>
+            </td>
+
+            <!-- Role -->
+            <td>
+              <span class="role-badge
+                {% if not u.is_active %}role-inactive
+                {% elif u.role == 'admin' %}role-admin
+                {% elif u.role == 'manager' %}role-manager
+                {% elif u.role == 'stock_manager' %}role-stock
+                {% else %}role-cashier{% endif %}">
+                {{ u.role | title }}
+              </span>
+            </td>
+
+            <td style="color:#6b7280">{{ u.phone or '—' }}</td>
+            <td style="color:#6b7280;white-space:nowrap">
+              {{ u.hire_date.strftime('%d %b %Y') if u.hire_date else '—' }}
+            </td>
+            <td style="font-weight:600">
+              {% if u.salary %} {{ "{:,.0f}".format(u.salary) }} {% else %}—{% endif %}
+            </td>
+            <td style="text-align:center">
+              <span class="role-badge role-cashier">{{ stats.shifts_done or 0 }}</span>
+            </td>
+            <td style="color:#6b7280;font-size:.8rem;white-space:nowrap">
+              {% if stats.open_shift %}
+                <span class="shift-open-dot"></span>On shift now
+              {% elif stats.last_shift %}
+                {{ stats.last_shift.strftime('%d %b, %H:%M') }}
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              {% if u.is_active %}
+                <span style="color:#10b981;font-size:.78rem;font-weight:700"><i class="bi bi-circle-fill" style="font-size:.5rem"></i> Active</span>
+              {% else %}
+                <span style="color:#9ca3af;font-size:.78rem;font-weight:700"><i class="bi bi-circle" style="font-size:.5rem"></i> Inactive</span>
+              {% endif %}
+            </td>
+
+            <!-- Actions -->
+            <td style="text-align:center;white-space:nowrap">
+              <div style="display:flex;gap:.35rem;justify-content:center;flex-wrap:wrap">
+                <!-- Edit -->
+                <button class="st-btn st-btn-edit"
+                        onclick="openEditModal(
+                          {{ u.id }},
+                          '{{ u.full_name or '' | e }}',
+                          '{{ u.phone or '' | e }}',
+                          '{{ u.id_number or '' | e }}',
+                          '{{ u.role }}',
+                          '{{ u.salary or 0 }}'
+                        )">
+                  <i class="bi bi-pencil"></i>
+                </button>
+
+                <!-- Activate / Deactivate -->
+                {% if u.id != current_user.id %}
+                <form method="POST" action="{{ url_for('toggle_staff', user_id=u.id) }}" style="display:inline">
+                  <button type="submit" class="st-btn st-btn-toggle"
+                          onclick="return confirm('{{ 'Deactivate' if u.is_active else 'Activate' }} {{ u.username }}?')"
+                          title="{{ 'Deactivate' if u.is_active else 'Activate' }}">
+                    <i class="bi bi-{{ 'person-dash' if u.is_active else 'person-check' }}"></i>
+                  </button>
+                </form>
+                {% endif %}
+
+                <!-- View shifts -->
+                <a href="{{ url_for('shifts') }}?user={{ u.id }}" class="st-btn st-btn-edit" title="View Shifts">
+                  <i class="bi bi-clock-history"></i>
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="9" style="text-align:center;padding:3rem;color:#9ca3af">
+              <i class="bi bi-people" style="font-size:2rem;display:block;margin-bottom:.75rem;opacity:.3;color:#ef4444"></i>
+              No staff members yet. Add your first staff member above.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+
+<!-- ═══════════════════════ ADD STAFF MODAL ═══════════════════════════ -->
+<div class="modal fade biz-modal" id="addStaffModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-person-plus-fill me-2" style="color:#ef4444"></i>Add Staff Member</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="{{ url_for('staff') }}">
+        <input type="hidden" name="action" value="add">
+        <div class="modal-body">
+
+          <div class="biz-form-row">
+            <div class="biz-form-group">
+              <label class="biz-form-label">Username <span class="req">*</span></label>
+              <input type="text" name="username" class="biz-form-input" placeholder="e.g. john_doe" required>
+            </div>
+            <div class="biz-form-group">
+              <label class="biz-form-label">Password <span class="req">*</span></label>
+              <input type="password" name="password" class="biz-form-input" placeholder="Min. 6 characters" required>
+            </div>
+          </div>
+
+          <div class="biz-form-group">
+            <label class="biz-form-label">Full Name</label>
+            <input type="text" name="full_name" class="biz-form-input" placeholder="e.g. John Kamau">
+          </div>
+
+          <div class="biz-form-row">
+            <div class="biz-form-group">
+              <label class="biz-form-label">Phone</label>
+              <input type="text" name="phone" class="biz-form-input" placeholder="07xx xxx xxx">
+            </div>
+            <div class="biz-form-group">
+              <label class="biz-form-label">National ID</label>
+              <input type="text" name="id_number" class="biz-form-input" placeholder="12345678">
+            </div>
+          </div>
+
+          <div class="biz-form-row">
+            <div class="biz-form-group">
+              <label class="biz-form-label">Role <span class="req">*</span></label>
+              <select name="role" class="biz-form-input">
+                <option value="cashier">Cashier</option>
+                <option value="stock_manager">Stock Manager</option>
+                <option value="manager">Manager</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <div class="biz-form-group">
+              <label class="biz-form-label">Hire Date</label>
+              <input type="date" name="hire_date" class="biz-form-input" value="{{ today }}">
+            </div>
+          </div>
+
+          <div class="biz-form-group" style="margin-bottom:0">
+            <label class="biz-form-label">Monthly Salary (KES)</label>
+            <input type="number" name="salary" class="biz-form-input" placeholder="0.00" min="0" step="0.01">
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="biz-btn biz-btn-ghost" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="biz-btn biz-btn-danger"><i class="bi bi-check-circle-fill"></i> Add Staff</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════ EDIT STAFF MODAL ═════════════════════════ -->
+<div class="modal fade biz-modal" id="editStaffModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-pencil-fill me-2" style="color:#ef4444"></i>Edit Staff Member</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="editStaffForm" method="POST" action="">
+        <div class="modal-body">
+
+          <div class="biz-form-group">
+            <label class="biz-form-label">Full Name</label>
+            <input type="text" id="editFullName" name="full_name" class="biz-form-input">
+          </div>
+
+          <div class="biz-form-row">
+            <div class="biz-form-group">
+              <label class="biz-form-label">Phone</label>
+              <input type="text" id="editPhone" name="phone" class="biz-form-input">
+            </div>
+            <div class="biz-form-group">
+              <label class="biz-form-label">National ID</label>
+              <input type="text" id="editIdNumber" name="id_number" class="biz-form-input">
+            </div>
+          </div>
+
+          <div class="biz-form-row">
+            <div class="biz-form-group">
+              <label class="biz-form-label">Role</label>
+              <select id="editRole" name="role" class="biz-form-input">
+                <option value="cashier">Cashier</option>
+                <option value="stock_manager">Stock Manager</option>
+                <option value="manager">Manager</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <div class="biz-form-group">
+              <label class="biz-form-label">Monthly Salary (KES)</label>
+              <input type="number" id="editSalary" name="salary" class="biz-form-input" min="0" step="0.01">
+            </div>
+          </div>
+
+          <div class="biz-form-group" style="margin-bottom:0">
+            <label class="biz-form-label">New Password <span style="color:#9ca3af;font-weight:400">(leave blank to keep current)</span></label>
+            <input type="password" name="new_password" class="biz-form-input" placeholder="New password…">
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="biz-btn biz-btn-ghost" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="biz-btn biz-btn-danger"><i class="bi bi-check-circle-fill"></i> Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+
+{% block scripts %}
+<script>
+function openEditModal(id, fullName, phone, idNumber, role, salary) {
+  document.getElementById('editFullName').value  = fullName;
+  document.getElementById('editPhone').value     = phone;
+  document.getElementById('editIdNumber').value  = idNumber;
+  document.getElementById('editSalary').value    = salary;
+  document.getElementById('editRole').value      = role;
+  document.getElementById('editStaffForm').action = '/staff/' + id + '/edit';
+  new bootstrap.Modal(document.getElementById('editStaffModal')).show();
+}
+</script>
+{% endblock %}
